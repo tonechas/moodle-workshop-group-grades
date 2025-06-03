@@ -43,7 +43,7 @@ class User():
         The user's first name.
     groups : list of str, optional
         A list of groups to which the user belongs.
-        Defaults to an empty list.
+        Defaults to None.
 
     Attributes
     ----------
@@ -58,17 +58,25 @@ class User():
 
     Examples
     --------
-    >>> user = User('Doe', 'John', ['Group 1', 'Group 1.2'])
-    >>> print(user)
+    >>> user1 = User('Doe', 'John', ['Group 1', 'Group 1.2'])
+    >>> print(user1)
     User('John Doe')
-    >>> user.groups
+    >>> user1.groups
     ['Group 1', 'Group 1.2']
+    >>> user2 = User('Roe', 'Jane')
+    >>> user2.full_name
+    'Jane Roe'
+    >>> user2.groups
+    []
     """
-    def __init__(self, last_name, first_name, groups=[]):
+    def __init__(self, last_name, first_name, groups=None):
         self.last_name = last_name
         self.first_name = first_name
         self.full_name = f'{self.first_name} {self.last_name}'
-        self.groups = groups
+        if groups is not None:
+            self.groups = groups
+        else:
+            self.groups = []
     def __repr__(self):
         return f'{self.__class__.__name__}({self.full_name!r})'
 
