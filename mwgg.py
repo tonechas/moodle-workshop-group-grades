@@ -1,8 +1,12 @@
 import csv
+import doctest
+from pathlib import Path
 import re
 
 from bs4 import BeautifulSoup
 
+
+DATA_FOLDER = r'C:\Users\Tonechas\Dropbox\OngoingWork\GroupsInWorkshops'
 
 NULL_GRADE = '-'
 
@@ -28,6 +32,38 @@ GRADING_GRADE_CELLS = (
 
 
 class User():
+    """
+    Represents a Moodle user, typically a student or a teacher.
+
+    Parameters
+    ----------
+    last_name : str
+        The user's last name.
+    first_name : str
+        The user's first name.
+    groups : list of str, optional
+        A list of groups to which the user belongs.
+        Defaults to an empty list.
+
+    Attributes
+    ----------
+    last_name : str
+        The user's last name.
+    first_name : str
+        The user's first name.
+    full_name : str
+        The user's full name in the format "First Last".
+    groups : list of str
+        The groups to which the user belongs.
+
+    Examples
+    --------
+    >>> user = User('Doe', 'John', ['Group 1', 'Group 1.2'])
+    >>> print(user)
+    User('John Doe')
+    >>> user.groups
+    ['Group 1', 'Group 1.2']
+    """
     def __init__(self, last_name, first_name, groups=[]):
         self.last_name = last_name
         self.first_name = first_name
@@ -56,7 +92,8 @@ class CourseParticipants():
     def from_csv(cls, course_id):
         users = []
         filename = f'courseid_{course_id}_participants.csv'
-        with open(filename, newline='', encoding='utf-8') as file:
+        csv_file = Path(DATA_FOLDER, filename)
+        with open(csv_file, newline='', encoding='utf-8') as file:
             reader = csv.reader(file)
             next(reader)  # Skip header row
             for line in reader:
@@ -309,47 +346,15 @@ class WorkshopData():
 #geo2 = CourseParticipants.from_csv(22862)
 #eg = CourseParticipants.from_csv(23252)
 
-p4 = WorkshopData('geo2-practica4.htm')
-p4.save_grades('xxxxxxxxxxx.csv')
+if __name__ == '__main__':
+    doctest.testmod()
+
+html_file = Path(DATA_FOLDER, 'geo2-practica4.htm')
+csv_file = Path(DATA_FOLDER, 'geo2-practica4.csv')
+p4 = WorkshopData(html_file)
+p4.save_grades(csv_file)
+
 #wd = WorkshopReport('eg-shaft-support.htm')
 
 
-#%%
-# x = geo2.users[1]
-# y = geo2.groups[2]
-
-
-# class A():
-#     def __init__(self, x):
-#         self.x = x
-#         self.y = None
-#     @property
-#     def y(self):
-#         return self._y
-#     @y.setter
-#     def y(self, z):
-#         self._y = ['Arantza' for _ in range(self.x)]
-
-# a = A(3)
-
-
-
-
-        # self.received = []
-        # self.given = []
-        # self.assessment = 0
-        # self.overall = 0
-
-    # def __repr__(self):
-    #     return (f'{self.__class__.__name__}'
-    #             f'({self.last_name}, '
-    #             f'{self.first_name}, '
-    #             f'{self.groups})')
-    #__str__ = __repr__
-
-    # def __repr__(self):
-    #     return (f'{self.__class__.__name__}'
-    #             f'({self.last_name}, '
-    #             f'{self.first_name}, '
-    #             f'{self.groups})')
         
