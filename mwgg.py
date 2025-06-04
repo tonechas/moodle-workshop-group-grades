@@ -41,9 +41,9 @@ class User():
         The user's last name.
     first_name : str
         The user's first name.
-    groups : list of str, optional
-        A list of groups to which the user belongs.
-        Defaults to None.
+    group_ids : list of str, optional
+        A list of IDs of the groups to which the user belongs.
+        Defaults to None if not provided.
 
     Attributes
     ----------
@@ -53,54 +53,91 @@ class User():
         The user's first name.
     full_name : str
         The user's full name in the format "First Last".
-    groups : list of str
-        The groups to which the user belongs.
+    group_ids : list of str
+        The IDs of the groups to which the user belongs.
 
     Examples
     --------
-    >>> user1 = User('Doe', 'John', ['Group 1', 'Group 1.2'])
+    >>> user1 = User('Doe', 'John', ['G1', 'Group 2.3'])
     >>> print(user1)
     User('John Doe')
-    >>> user1.groups
-    ['Group 1', 'Group 1.2']
+    >>> user1.group_ids
+    ['G1', 'Group 2.3']
     >>> user2 = User('Roe', 'Jane')
     >>> user2.full_name
     'Jane Roe'
-    >>> user2.groups
+    >>> user2.group_ids
     []
     """
-    def __init__(self, last_name, first_name, groups=None):
+    def __init__(self, last_name, first_name, group_ids=None):
         self.last_name = last_name
         self.first_name = first_name
         self.full_name = f'{self.first_name} {self.last_name}'
-        if groups is not None:
-            self.groups = groups
-        else:
-            self.groups = []
+        self.group_ids = group_ids if group_ids is not None else []
     def __repr__(self):
         return f'{self.__class__.__name__}({self.full_name!r})'
 
 
 class Group():
-    def __init__(self, group_id, members=[]):
+    """
+    Represents a group of users identified by a unique group ID.
+
+    Parameters
+    ----------
+    group_id : str
+        A unique identifier for the group, such as 'A', 'C3.2'
+        or 'Group 2.1'.
+    members : list of User, optional
+        A list of User instances that belong to the group.
+        Defaults to an empty list if not provided.
+
+    Attributes
+    ----------
+    group_id : str
+        The identifier for the group.
+    members : list of User
+        The users who are members of the group.
+
+    Examples
+    --------
+    >>> g1 = Group('Group 1')
+    >>> print(g1)
+    Group('Group 1')
+    >>> g1.members
+    []
+    >>> user1 = User('Doe', 'Chris')
+    >>> g2 = Group('A3.1', [user1])
+    >>> g2.members
+    [User('Chris Doe')]
+    """
+    # !!! This should be fixed
+    # >>> usr = User('Smith', 'Sally', ['A', 'G1'])
+    # >>> g = Group('C', [usr])
+    # >>> g.members
+    # [User('Sally Smith')]
+    # >>> usr.group_ids
+    # ['A', 'G1']
+    def __init__(self, group_id, members=None):
         self.group_id = group_id
-        self.members = members
+        self.members = members if members is not None else []
     def __repr__(self):
         return f'{self.__class__.__name__}({self.group_id!r})'
 
 
-class CourseParticipants():
-    def __init__(self, course_id, users):
+class Course():
+    def __init__(self, course_id, users, groups):
         self.course_id = course_id
         self.users = sorted(users, key=lambda x: x.last_name)
+        self.groups = sorted(groups, key=lambda x: x.group_id)
     def __repr__(self):
         return f'{self.__class__.__name__}({self.course_id})'
     
     @classmethod
     def from_csv(cls, course_id):
-        users = []
         filename = f'courseid_{course_id}_participants.csv'
         csv_file = Path(DATA_FOLDER, filename)
+        users = []
+        groups = []
         with open(csv_file, newline='', encoding='utf-8') as file:
             reader = csv.reader(file)
             next(reader)  # Skip header row
@@ -111,16 +148,24 @@ class CourseParticipants():
                 first_name = line[0].strip()
                 last_name = line[1].strip()
                 try:
-                    groups = [group.strip() for group in line[3].split(',')]
+                    raw_ids = line[3].split(',')
+                    group_ids = [group_id.strip() for group_id in raw_ids]
                 except IndexError:
                     # User does not belong to any group
-                    groups = []
-                user = User(last_name, first_name, groups)
+                    group_ids = []
+                user = User(last_name, first_name, group_ids)
                 users.append(user)
-        return cls(course_id, users)
+                for group_id in group_ids:
+                    for group in groups:
+                        if group.group_id == group_id:
+                            group.members.append(user)
+                            break
+                    else:
+                        groups.append(Group(group_id, [user]))
+        return cls(course_id, users, groups)
 
 
-class WorkshopReportParser():
+class GradesReportParser():
     def __init__(self, filename):
         with open(filename, 'r', encoding='utf-8') as file:
             html_content = file.read()
@@ -246,12 +291,12 @@ class WorkshopReportParser():
         return grades
 
 
-class WorkshopData():
+class Workshop():
     def __init__(self, filename):
-        self.parser = WorkshopReportParser(filename)
+        self.parser = GradesReportParser(filename)
         self.workshop_title = self.parser.extract_workshop_title()
-        self.course_title = self.parser.extract_course_title()
-        self.course_id = self.parser.extract_course_id()
+        self.course = self.get_course()
+        
         self.group_ids = self.parser.extract_group_ids()
         self.grades_from_report = self.parser.extract_grades()
         self.grades = self.compute_grades()
@@ -259,22 +304,30 @@ class WorkshopData():
 #        self.groups = self.get_groups()
 #        self.participants = self.get_participants()
 
-    def get_course_groups(self):
-        course_participants = CourseParticipants.from_csv(self.course_id)
-        users = course_participants.users
-        groups = []
-        for group_id in self.group_ids:
-            members = []
-            for user in users:
-                if group_id in user.groups:
-                    members.append(user)
-            group = Group(group_id, members)
-            groups.append(group)
-        return groups
+    def get_course(self):
+        course_id = self.parser.extract_course_id()
+        #course_title = self.parser.extract_course_title()
+        return Course.from_csv(course_id)
+
+        
+    def get_workshop_groups(self):
+            # course = Course.from_csv(self.course_id)
+            # users = course.users
+            # groups = []
+            # for group_id in self.group_ids:
+            #     members = []
+            #     for user in users:
+            #         if group_id in user.group_ids:
+            #             members.append(user)
+            #     group = Group(group_id, members)
+            #     groups.append(group)
+            groups = [group for group in self.course.groups
+                      if group.group_id in self.group_ids]
+            return groups
 
     def compute_grades(self):
         grades = dict()
-        groups = self.get_course_groups()
+        groups = self.get_workshop_groups()
         for group in groups:
             full_names = [member.full_name for member in group.members]
             received = []
@@ -359,7 +412,9 @@ if __name__ == '__main__':
 
 html_file = Path(DATA_FOLDER, 'geo2-practica4.htm')
 csv_file = Path(DATA_FOLDER, 'geo2-practica4.csv')
-p4 = WorkshopData(html_file)
+
+geo2 = Course.from_csv(22862)
+p4 = Workshop(html_file)
 p4.save_grades(csv_file)
 
 #wd = WorkshopReport('eg-shaft-support.htm')
