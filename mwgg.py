@@ -41,7 +41,7 @@ class User():
         The user's last name.
     first_name : str
         The user's first name.
-    group_ids : list of str, optional
+    group_ids : tuple of str, optional
         A list of IDs of the groups to which the user belongs.
         Defaults to None if not provided.
 
@@ -53,27 +53,27 @@ class User():
         The user's first name.
     full_name : str
         The user's full name in the format "First Last".
-    group_ids : list of str
+    group_ids : tuple of str
         The IDs of the groups to which the user belongs.
 
     Examples
     --------
-    >>> user1 = User('Doe', 'John', ['G1', 'Group 2.3'])
+    >>> user1 = User('Doe', 'John', ('G1', 'Group 2.3'))
     >>> print(user1)
     User('John Doe')
     >>> user1.group_ids
-    ['G1', 'Group 2.3']
+    ('G1', 'Group 2.3')
     >>> user2 = User('Roe', 'Jane')
     >>> user2.full_name
     'Jane Roe'
     >>> user2.group_ids
-    []
+    ()
     """
     def __init__(self, last_name, first_name, group_ids=None):
         self.last_name = last_name
         self.first_name = first_name
         self.full_name = f'{self.first_name} {self.last_name}'
-        self.group_ids = group_ids if group_ids is not None else []
+        self.group_ids = group_ids if group_ids is not None else ()
     def __repr__(self):
         return f'{self.__class__.__name__}({self.full_name!r})'
 
@@ -87,16 +87,18 @@ class Group():
     group_id : str
         A unique identifier for the group, such as 'A', 'C3.2'
         or 'Group 2.1'.
-    members : list of User, optional
-        A list of User instances that belong to the group.
+    members : tuple of User, optional
+        A tuple of User instances.
         Defaults to an empty list if not provided.
 
     Attributes
     ----------
     group_id : str
         The identifier for the group.
-    members : list of User
-        The users who are members of the group.
+    members : tuple of User
+        The users who are members of the group. Those users whose
+        groups_ids attribute does not contain the group_id won't
+        be included in the group.
 
     Examples
     --------
@@ -104,22 +106,24 @@ class Group():
     >>> print(g1)
     Group('Group 1')
     >>> g1.members
-    []
-    >>> user1 = User('Doe', 'Chris')
-    >>> g2 = Group('A3.1', [user1])
+    ()
+    >>> user1 = User('Doe', 'Chris', 'A')
+    >>> g2 = Group('A', (user1,))
     >>> g2.members
-    [User('Chris Doe')]
+    (User('Chris Doe'),)
+    >>> user2 = User('Smith', 'Sally', ['A', 'G3'])
+    >>> g3 = Group('G3', [user1, user2])
+    >>> g3.members
+    (User('Sally Smith'),)
     """
-    # !!! This should be fixed
-    # >>> usr = User('Smith', 'Sally', ['A', 'G1'])
-    # >>> g = Group('C', [usr])
-    # >>> g.members
-    # [User('Sally Smith')]
-    # >>> usr.group_ids
-    # ['A', 'G1']
     def __init__(self, group_id, members=None):
         self.group_id = group_id
-        self.members = members if members is not None else []
+        if members is None:
+            self.members = ()
+        else:
+            self.members = tuple(
+                member for member in members if group_id in member.group_ids
+            )
     def __repr__(self):
         return f'{self.__class__.__name__}({self.group_id!r})'
 
@@ -127,8 +131,8 @@ class Group():
 class Course():
     def __init__(self, course_id, users, groups):
         self.course_id = course_id
-        self.users = sorted(users, key=lambda x: x.last_name)
-        self.groups = sorted(groups, key=lambda x: x.group_id)
+        self.users = tuple(sorted(users, key=lambda x: x.last_name))
+        self.groups = tuple(sorted(groups, key=lambda x: x.group_id))
     def __repr__(self):
         return f'{self.__class__.__name__}({self.course_id})'
     
@@ -158,11 +162,11 @@ class Course():
                 for group_id in group_ids:
                     for group in groups:
                         if group.group_id == group_id:
-                            group.members.append(user)
+                            group.members += (user,)
                             break
                     else:
                         groups.append(Group(group_id, [user]))
-        return cls(course_id, users, groups)
+        return cls(course_id, tuple(users), tuple(groups))
 
 
 class GradesReportParser():
