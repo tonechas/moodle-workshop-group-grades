@@ -98,7 +98,7 @@ class Group():
     members : tuple of User
         The users who are members of the group. Those users whose
         groups_ids attribute does not contain the group_id won't
-        be included in the group.
+        be included in this tuple.
 
     Examples
     --------
@@ -129,10 +129,80 @@ class Group():
 
 
 class Course():
+    """
+    Represents a Moodle course with users and group assignments.
+
+    This class models the participant list of a Moodle course,
+    including all users and their group affiliations. It verifies
+    that group membership matches the users' declared group IDs.
+
+    Parameters
+    ----------
+    course_id : int
+        The unique identifier assigned to the course by Moodle.
+    users : list of User
+        A list of User instances enrolled in the course.
+    groups : list of Group
+        A list of Group instances associated with the course.
+
+    Attributes
+    ----------
+    course_id : int
+        The Moodle-assigned course identifier.
+    users : tuple of User
+        All users enrolled in the course, sorted by last name.
+    groups : tuple of Group
+        All groups in the course, sorted by group ID.
+
+    Raises
+    ------
+    ValueError
+        If any group's members do not match the users who list that
+        group's ID in their `group_ids` attribute.
+
+    Class Methods
+    -------------
+    from_csv(course_id)
+        Constructs a Course instance from a Moodle CSV file named
+        `courseid_<course_id>_participants.csv`. The file must have
+        four columns: first name, last name, email, and groups. Group
+        names must be comma-separated.
+
+    Examples
+    --------
+    >>> path = Path('.', 'courseid_12345_participants.csv')
+    >>> with open(path, 'w') as f:
+    ...     print(r'"First name",Surname,"Email address",Groups', file=f)
+    ...     print(r'Sally,Smith,sally@gmail.com,"A, G1_2"', file=f)
+    ...     print(r'Joe,Bloggs,joe@yahoo.com,"B, G1_1"', file=f)
+    ...     print(r'Jane,Roe,jenny@hotmail.com,"B, G1_2"', file=f)
+    ...     print(r'John,Doe,johny@example.com,"A, G1_1"', file=f)
+    ...
+    >>> course = Course.from_csv(12345)
+    >>> for user in course.users:
+    ...     print(user)
+    ...
+    User('Joe Bloggs')
+    User('John Doe')
+    User('Jane Roe')
+    User('Sally Smith')
+    >>> type(course.users)
+    <class 'tuple'>
+    >>> course.groups
+    (Group('A'), Group('B'), Group('G1_1'), Group('G1_2'))
+    """
     def __init__(self, course_id, users, groups):
         self.course_id = course_id
         self.users = tuple(sorted(users, key=lambda x: x.last_name))
         self.groups = tuple(sorted(groups, key=lambda x: x.group_id))
+        for group in self.groups:
+            group_users = []
+            for user in users:
+                if group.group_id in user.group_ids:
+                    group_users.append(user)
+            if [user for user in group_users if user not in group.members]:
+                raise ValueError(f'Group {group} is malformed')
+
     def __repr__(self):
         return f'{self.__class__.__name__}({self.course_id})'
     
@@ -166,7 +236,7 @@ class Course():
                             break
                     else:
                         groups.append(Group(group_id, [user]))
-        return cls(course_id, tuple(users), tuple(groups))
+        return cls(course_id, users, groups)
 
 
 class GradesReportParser():
