@@ -240,13 +240,64 @@ class Course():
 
 
 class GradesReportParser():
+    """
+    Parses a Moodle workshop grades report exported as an HTML file.
+
+    This class uses BeautifulSoup to extract structured data from a 
+    Moodle workshop grading report, including course metadata, group 
+    information, participant names, and peer assessment grades.
+
+    Attributes
+    ----------
+    soup : bs4.BeautifulSoup
+        Parsed HTML content of the grades report, used internally for
+        extracting information.
+    """
     def __init__(self, filename):
+        """
+        Read the specified HTML file and parses its content using 
+        BeautifulSoup with the 'lxml' parser.
+    
+        Parameters
+        ----------
+        filename : str
+            Path to the HTML file exported from a Moodle workshop 
+            grades report.
+        """
         with open(filename, 'r', encoding='utf-8') as file:
             html_content = file.read()
         self.soup = BeautifulSoup(html_content, 'lxml')
 
     @staticmethod
     def get_grade(grade_tag):
+        """
+        Extract a numeric grade from a tag.
+    
+        Handles both dot and comma as decimal separators.
+    
+        Parameters
+        ----------
+        grade_tag : bs4.element.Tag
+            A BeautifulSoup tag containing a grade as text.
+    
+        Returns
+        -------
+        float
+            The extracted numeric grade.
+                
+        Examples
+        --------
+        >>> tag1 = BeautifulSoup(
+        ...     '<span class="grade">70,4</span>', 'lxml'
+        ... ).span
+        >>> GradesReportParser.get_grade(tag1)
+        70.4
+        >>> tag2 = BeautifulSoup(
+        ...     '<span class="grade">81.3</span>', 'lxml'
+        ... ).span
+        >>> GradesReportParser.get_grade(tag2)
+        81.3
+        """
         text = grade_tag.get_text(strip=True)
         try:
             grade = float(text)
@@ -256,11 +307,111 @@ class GradesReportParser():
         return grade
 
     def extract_workshop_title(self):
+        """
+        Extract the title of the current workshop from the breadcrumb.
+    
+        The workshop title is assumed to be the last `<li>` element
+        within the breadcrumb navigation bar of the HTML document.
+    
+        Returns
+        -------
+        str
+            The title of the workshop, with surrounding whitespace
+            removed.
+        
+        Examples
+        --------
+        >>> path = Path('.', '12345_ws.htm')
+        >>> ol = '''
+        ...     <ol class="breadcrumb">
+        ...         <li class="breadcrumb-item">
+        ...             <a href="https://.../index.php?categoryid=919"  >
+        ...                 2024/2025
+        ...             </a>
+        ...         </li>
+        ...         <li class="breadcrumb-item">
+        ...             <a href="https://.../index.php?categoryid=921"  >
+        ...                 Oficial programs
+        ...             </a>
+        ...         </li>
+        ...         <li class="breadcrumb-item">
+        ...             <a href="https://.../index.php?categoryid=949"  >
+        ...                 Bachelor's degree in Marine Science
+        ...             </a>
+        ...         </li>
+        ...         <li class="breadcrumb-item">
+        ...             <a href="https://.../view.php?id=22862&amp;section=7"
+        ...               title="Geology for Dummies">
+        ...                 Course code
+        ...             </a>
+        ...         </li>
+        ...         <li class="breadcrumb-item">
+        ...             <span>Workshop: Carbonate Content Analysis</span>
+        ...         </li>
+        ...     </ol>'''
+        >>> soup = BeautifulSoup(ol, 'lxml')
+        >>> with open(path, 'w') as f:
+        ...     print(soup, file=f)
+        ...
+        >>> parser = GradesReportParser(path)
+        >>> parser.extract_workshop_title()
+        'Workshop: Carbonate Content Analysis'
+        """
         breadcrumb = self.soup.find('ol', class_='breadcrumb')
         last_li = breadcrumb.find_all('li')[-1]
         return last_li.get_text(strip=True)
     
     def extract_course_title(self):
+        """
+        Extract the course title from the breadcrumb navigation bar.
+    
+        The course title is obtained from the first `<a>` tag in the
+        breadcrumb that includes a `title` attribute.
+    
+        Returns
+        -------
+        str
+            The title of the course, as specified in the `title`
+            attribute of the corresponding link.
+        
+        Examples
+        --------
+        >>> path = Path('.', '12345_ws.htm')
+        >>> ol = '''
+        ...     <ol class="breadcrumb">
+        ...         <li class="breadcrumb-item">
+        ...             <a href="https://.../index.php?categoryid=919"  >
+        ...                 2024/2025
+        ...             </a>
+        ...         </li>
+        ...         <li class="breadcrumb-item">
+        ...             <a href="https://.../index.php?categoryid=921"  >
+        ...                 Oficial programs
+        ...             </a>
+        ...         </li>
+        ...         <li class="breadcrumb-item">
+        ...             <a href="https://.../index.php?categoryid=949"  >
+        ...                 Bachelor's degree in Marine Science
+        ...             </a>
+        ...         </li>
+        ...         <li class="breadcrumb-item">
+        ...             <a href="https://.../view.php?id=22862&amp;section=7"
+        ...               title="Geology for Dummies">
+        ...                 Course code
+        ...             </a>
+        ...         </li>
+        ...         <li class="breadcrumb-item">
+        ...             <span>Workshop: Carbonate Content Analysis</span>
+        ...         </li>
+        ...     </ol>'''
+        >>> soup = BeautifulSoup(ol, 'lxml')
+        >>> with open(path, 'w') as f:
+        ...     print(soup, file=f)
+        ...
+        >>> parser = GradesReportParser(path)
+        >>> parser.extract_course_title()
+        'Geology for Dummies'
+        """
         breadcrumb = self.soup.find('ol', class_='breadcrumb')
         for a_tag in breadcrumb.find_all('a'):
             if a_tag.has_attr('title'):
@@ -279,6 +430,12 @@ class GradesReportParser():
         -------
         int
             The course ID if found.
+
+        Raises
+        ------
+        AttributeError
+            If the breadcrumb or the expected link structure
+            is not found.
         """
         for script_tag in self.soup.find_all('script'):
             content = script_tag.string
@@ -287,7 +444,7 @@ class GradesReportParser():
             found = re.search(r'"courseId"\s*:\s*(\d+)', content)
             if found:
                 return int(found.group(1))
-        raise ValueError('Unable to extract "courseId".')
+        raise AttributeError('Unable to extract "courseId".')
 
     def extract_group_ids(self):
         select_tag = self.soup.find('select', attrs={
@@ -478,9 +635,6 @@ class Workshop():
     #     return groups
 
 
-#geo2 = CourseParticipants.from_csv(22862)
-#eg = CourseParticipants.from_csv(23252)
-
 if __name__ == '__main__':
     doctest.testmod()
 
@@ -491,7 +645,9 @@ geo2 = Course.from_csv(22862)
 p4 = Workshop(html_file)
 p4.save_grades(csv_file)
 
-#wd = WorkshopReport('eg-shaft-support.htm')
+#html_file = Path(DATA_FOLDER, 'eg-shaft-support.htm')
+#csv_file = Path(DATA_FOLDER, 'eg-shatft-support.csv')
+#eg = Course.from_csv(23252)
 
 
         
