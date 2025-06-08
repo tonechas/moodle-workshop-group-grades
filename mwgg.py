@@ -447,6 +447,51 @@ class GradesReportParser():
         raise AttributeError('Unable to extract "courseId".')
 
     def extract_group_ids(self):
+        """
+        Extract the list of group names from the group selection menu.
+    
+        Finds the `<select>` element used to choose participant groups,
+        and collects the text content of all `<option>` elements except
+        the default "All participants" entry.
+    
+        Returns
+        -------
+        list of str
+            A sorted list of group names as they appear in the
+            dropdown menu.
+
+        Examples
+        --------
+        >>> path = Path('.', '12345_ws.htm')
+        >>> form = '''
+        ...     <form method="get" action="https://.../view.php"
+        ...             class="form-inline" id="selectgroup">
+        ...         <input type="hidden" name="id" value="1137354">
+        ...         <label for="single_select68359598e10ee12">
+        ...             Visible groups (groups.w)
+        ...         </label>
+        ...         <select  id="single_select68359598e10ee12"
+        ...             class="custom-select singleselect" name="group">
+        ...             <option  value="0" selected>All participants</option>
+        ...             <option  value="88465" >Group 1_1</option>
+        ...             <option  value="88466" >Group 1_2</option>
+        ...             <option  value="88470" >Group 2_1</option>
+        ...             <option  value="88471" >Group 2_2</option>
+        ...             <option  value="88472" >Group 2_3</option>
+        ...         </select>
+        ...         <noscript>
+        ...             <input type="submit" class="btn btn-secondary ml-1"
+        ...                 value="Go to">
+        ...         </noscript>
+        ...     </form>'''
+        >>> soup = BeautifulSoup(form, 'lxml')
+        >>> with open(path, 'w') as f:
+        ...     print(soup, file=f)
+        ...
+        >>> parser = GradesReportParser(path)
+        >>> parser.extract_group_ids()
+        ['Group 1_1', 'Group 1_2', 'Group 2_1', 'Group 2_2', 'Group 2_3']
+        """
         select_tag = self.soup.find('select', attrs={
             'class': ['custom-select', 'singleselect'],
             'name': 'group'
@@ -460,20 +505,50 @@ class GradesReportParser():
         return sorted(group_ids)
 
     def extract_rows(self):
+        """
+        Extract relevant table rows from the grades report.
+    
+        Parses the first `<table>` element in the HTML document and
+        collects all `<tr>` elements within its `<tbody>` that are not
+        marked with specific structural classes, except for 'lastrow'.
+    
+        Returns
+        -------
+        list of bs4.element.Tag
+            A list of `<tr>` tags corresponding to participant
+            data rows.
+    
+        Raises
+        ------
+        AttributeError
+            If no `<table>` or `<tbody>` is found in the parsed HTML.
+        """
         tables = self.soup.find_all('table')
         if not tables:
-            raise ValueError('No <table> elements found in `soup`.')
+            raise AttributeError('No <table> elements found in `soup`.')
         first_table = tables[0]
         tbody = first_table.find('tbody')
         if tbody is None:
-            raise ValueError('No <tbody> found in the first table.')
+            raise AttributeError('No <tbody> found in the first table.')
         rows = []
         for tr in tbody.find_all('tr'):
             if tr.has_attr('class') and tr['class'] in ([], ['lastrow']):
                 rows.append(tr)
         return rows
 
-    def extract_participants(self):
+    def extract_participants(self): #!!! Not used
+        """
+        Extract the participant names from the grades report.
+    
+        Iterates over the table rows and retrieves the participant's
+        full name from the appropriate `<td>` element, based on known
+        CSS classes.
+    
+        Returns
+        -------
+        list of str
+            A list of participant names as they appear in the report.
+        """
         participants = []
         for row in self.extract_rows():
             td = row.find('td',class_=lambda x: x in PARTICIPANT_CELLS)
@@ -483,6 +558,34 @@ class GradesReportParser():
 
 
     def extract_grades(self):
+        """
+        Extract peer assessment grades from the workshop report table.
+    
+        Parses each relevant table row to build a nested dictionary of
+        grades, including:
+        - Grades received by each participant from peers.
+        - Grades given by each participant to peers.
+        - The assessment grade assigned to each participant.
+    
+        Also performs a consistency check to ensure that received and
+        given grades match symmetrically across participants.
+    
+        Returns
+        -------
+        dict
+            A dictionary where keys are participant names (str), and
+            values are dictionaries with the following structure:
+            {
+                'received': {grader_name: grade, ...},
+                'given': {gradee_name: grade, ...},
+                'assessment': float or str (if NULL_GRADE)
+            }
+    
+        Raises
+        ------
+        ValueError
+            If a mismatch is found between received and given grades.
+        """
         grades = dict()
         for row in self.extract_rows():
             td_part = row.find('td', class_=lambda x: x in PARTICIPANT_CELLS)
@@ -527,7 +630,6 @@ class Workshop():
         self.parser = GradesReportParser(filename)
         self.workshop_title = self.parser.extract_workshop_title()
         self.course = self.get_course()
-        
         self.group_ids = self.parser.extract_group_ids()
         self.grades_from_report = self.parser.extract_grades()
         self.grades = self.compute_grades()
@@ -645,9 +747,6 @@ geo2 = Course.from_csv(22862)
 p4 = Workshop(html_file)
 p4.save_grades(csv_file)
 
+#eg = Course.from_csv(23252)
 #html_file = Path(DATA_FOLDER, 'eg-shaft-support.htm')
 #csv_file = Path(DATA_FOLDER, 'eg-shatft-support.csv')
-#eg = Course.from_csv(23252)
-
-
-        
