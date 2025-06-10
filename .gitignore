@@ -1,3 +1,7 @@
+# Example data files used in doctests
+12345_ws.htm
+courseid_12345_participants.csv
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
