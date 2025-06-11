@@ -86,7 +86,7 @@ class Group():
     ----------
     group_id : str
         A unique identifier for the group, such as 'A', 'C3.2'
-        or 'Group 2.1'.
+        or 'Group 2_1'.
     members : tuple of User, optional
         A tuple of User instances.
         Defaults to an empty list if not provided.
@@ -241,32 +241,9 @@ class Course():
 
 class GradesReportParser():
     """
-    Parses a Moodle workshop grades report exported as an HTML file.
-
-    This class uses BeautifulSoup to extract structured data from a 
-    Moodle workshop grading report, including course metadata, group 
-    information, participant names, and peer assessment grades.
-
-    Attributes
-    ----------
-    soup : bs4.BeautifulSoup
-        Parsed HTML content of the grades report, used internally for
-        extracting information.
+    Toolbox for parsing a Moodle workshop grades report
+    exported as a bs4.BeautifulSoup object.
     """
-    def __init__(self, filename):
-        """
-        Read the specified HTML file and parses its content using 
-        BeautifulSoup with the 'lxml' parser.
-    
-        Parameters
-        ----------
-        filename : str
-            Path to the HTML file exported from a Moodle workshop 
-            grades report.
-        """
-        with open(filename, 'r', encoding='utf-8') as file:
-            html_content = file.read()
-        self.soup = BeautifulSoup(html_content, 'lxml')
 
     @staticmethod
     def get_grade(grade_tag):
@@ -306,13 +283,19 @@ class GradesReportParser():
             grade = float(text.replace(',', '.'))
         return grade
 
-    def extract_workshop_title(self):
+    @staticmethod
+    def extract_workshop_title(soup):
         """
         Extract the title of the current workshop from the breadcrumb.
     
         The workshop title is assumed to be the last `<li>` element
         within the breadcrumb navigation bar of the HTML document.
-    
+
+        Parameters
+        ----------
+        soup : bs4.BeatifulSoup
+            The content of a workshop grades report (Moodle page).
+
         Returns
         -------
         str
@@ -321,7 +304,6 @@ class GradesReportParser():
         
         Examples
         --------
-        >>> path = Path('.', '12345_ws.htm')
         >>> ol = '''
         ...     <ol class="breadcrumb">
         ...         <li class="breadcrumb-item">
@@ -350,24 +332,27 @@ class GradesReportParser():
         ...         </li>
         ...     </ol>'''
         >>> soup = BeautifulSoup(ol, 'lxml')
-        >>> with open(path, 'w') as f:
-        ...     print(soup, file=f)
-        ...
-        >>> parser = GradesReportParser(path)
-        >>> parser.extract_workshop_title()
+        >>> parser = GradesReportParser()
+        >>> parser.extract_workshop_title(soup)
         'Workshop: Carbonate Content Analysis'
         """
-        breadcrumb = self.soup.find('ol', class_='breadcrumb')
+        breadcrumb = soup.find('ol', class_='breadcrumb')
         last_li = breadcrumb.find_all('li')[-1]
         return last_li.get_text(strip=True)
-    
-    def extract_course_title(self):
+
+    @staticmethod
+    def extract_course_title(soup):
         """
         Extract the course title from the breadcrumb navigation bar.
     
         The course title is obtained from the first `<a>` tag in the
         breadcrumb that includes a `title` attribute.
     
+        Parameters
+        ----------
+        soup : bs4.BeatifulSoup
+            The content of a workshop grades report (Moodle page).
+
         Returns
         -------
         str
@@ -376,7 +361,6 @@ class GradesReportParser():
         
         Examples
         --------
-        >>> path = Path('.', '12345_ws.htm')
         >>> ol = '''
         ...     <ol class="breadcrumb">
         ...         <li class="breadcrumb-item">
@@ -405,22 +389,20 @@ class GradesReportParser():
         ...         </li>
         ...     </ol>'''
         >>> soup = BeautifulSoup(ol, 'lxml')
-        >>> with open(path, 'w') as f:
-        ...     print(soup, file=f)
-        ...
-        >>> parser = GradesReportParser(path)
-        >>> parser.extract_course_title()
+        >>> parser = GradesReportParser()
+        >>> parser.extract_course_title(soup)
         'Geology for Dummies'
         """
-        breadcrumb = self.soup.find('ol', class_='breadcrumb')
+        breadcrumb = soup.find('ol', class_='breadcrumb')
         for a_tag in breadcrumb.find_all('a'):
             if a_tag.has_attr('title'):
                 return a_tag['title']
 
-    def extract_course_id(self):
+    @staticmethod
+    def extract_course_id(soup):
         """
         Extract the value of `courseId` from a BeautifulSoup object.
-    
+
         Parameters
         ----------
         soup : bs4.BeatifulSoup
@@ -437,7 +419,7 @@ class GradesReportParser():
             If the breadcrumb or the expected link structure
             is not found.
         """
-        for script_tag in self.soup.find_all('script'):
+        for script_tag in soup.find_all('script'):
             content = script_tag.string
             if not content or 'courseId' not in content:
                 continue
@@ -446,13 +428,19 @@ class GradesReportParser():
                 return int(found.group(1))
         raise AttributeError('Unable to extract "courseId".')
 
-    def extract_group_ids(self):
+    @staticmethod
+    def extract_group_ids(soup):
         """
         Extract the list of group names from the group selection menu.
     
         Finds the `<select>` element used to choose participant groups,
         and collects the text content of all `<option>` elements except
         the default "All participants" entry.
+    
+        Parameters
+        ----------
+        soup : bs4.BeatifulSoup
+            The content of a workshop grades report (Moodle page).
     
         Returns
         -------
@@ -462,7 +450,6 @@ class GradesReportParser():
 
         Examples
         --------
-        >>> path = Path('.', '12345_ws.htm')
         >>> form = '''
         ...     <form method="get" action="https://.../view.php"
         ...             class="form-inline" id="selectgroup">
@@ -485,14 +472,11 @@ class GradesReportParser():
         ...         </noscript>
         ...     </form>'''
         >>> soup = BeautifulSoup(form, 'lxml')
-        >>> with open(path, 'w') as f:
-        ...     print(soup, file=f)
-        ...
-        >>> parser = GradesReportParser(path)
-        >>> parser.extract_group_ids()
+        >>> parser = GradesReportParser()
+        >>> parser.extract_group_ids(soup)
         ['Group 1_1', 'Group 1_2', 'Group 2_1', 'Group 2_2', 'Group 2_3']
         """
-        select_tag = self.soup.find('select', attrs={
+        select_tag = soup.find('select', attrs={
             'class': ['custom-select', 'singleselect'],
             'name': 'group'
         })
@@ -504,13 +488,19 @@ class GradesReportParser():
                 group_ids.add(option.get_text(strip=True))
         return sorted(group_ids)
 
-    def extract_rows(self):
+    @staticmethod
+    def extract_rows(soup):
         """
         Extract relevant table rows from the grades report.
     
         Parses the first `<table>` element in the HTML document and
         collects all `<tr>` elements within its `<tbody>` that are not
         marked with specific structural classes, except for 'lastrow'.
+    
+        Parameters
+        ----------
+        soup : bs4.BeatifulSoup
+            The content of a workshop grades report (Moodle page).
     
         Returns
         -------
@@ -523,7 +513,7 @@ class GradesReportParser():
         AttributeError
             If no `<table>` or `<tbody>` is found in the parsed HTML.
         """
-        tables = self.soup.find_all('table')
+        tables = soup.find_all('table')
         if not tables:
             raise AttributeError('No <table> elements found in `soup`.')
         first_table = tables[0]
@@ -536,28 +526,29 @@ class GradesReportParser():
                 rows.append(tr)
         return rows
 
-    def extract_participants(self): #!!! Not used
-        """
-        Extract the participant names from the grades report.
+    # @staticmethod
+    # def extract_participants(soup): #!!! Not used
+    #     """
+    #     Extract the participant names from the grades report.
     
-        Iterates over the table rows and retrieves the participant's
-        full name from the appropriate `<td>` element, based on known
-        CSS classes.
+    #     Iterates over the table rows and retrieves the participant's
+    #     full name from the appropriate `<td>` element, based on known
+    #     CSS classes.
     
-        Returns
-        -------
-        list of str
-            A list of participant names as they appear in the report.
-        """
-        participants = []
-        for row in self.extract_rows():
-            td = row.find('td',class_=lambda x: x in PARTICIPANT_CELLS)
-            if td:
-                participants.append(td.contents[-1].text)
-        return participants
+    #     Returns
+    #     -------
+    #     list of str
+    #         A list of participant names as they appear in the report.
+    #     """
+    #     participants = []
+    #     for row in self.extract_rows():
+    #         td = row.find('td',class_=lambda x: x in PARTICIPANT_CELLS)
+    #         if td:
+    #             participants.append(td.contents[-1].text)
+    #     return participants
 
 
-    def extract_grades(self):
+    def extract_grades(self, soup):
         """
         Extract peer assessment grades from the workshop report table.
     
@@ -569,6 +560,11 @@ class GradesReportParser():
     
         Also performs a consistency check to ensure that received and
         given grades match symmetrically across participants.
+    
+        Parameters
+        ----------
+        soup : bs4.BeatifulSoup
+            The content of a workshop grades report (Moodle page).
     
         Returns
         -------
@@ -587,7 +583,7 @@ class GradesReportParser():
             If a mismatch is found between received and given grades.
         """
         grades = dict()
-        for row in self.extract_rows():
+        for row in self.extract_rows(soup):
             td_part = row.find('td', class_=lambda x: x in PARTICIPANT_CELLS)
             if td_part:
                 participant = td_part.contents[-1].text
@@ -627,18 +623,40 @@ class GradesReportParser():
 
 class Workshop():
     def __init__(self, filename):
-        self.parser = GradesReportParser(filename)
-        self.workshop_title = self.parser.extract_workshop_title()
+        self.soup = self.get_soup(filename)
+        self.parser = GradesReportParser()
+        self.workshop_title = self.parser.extract_workshop_title(self.soup)
         self.course = self.get_course()
-        self.group_ids = self.parser.extract_group_ids()
-        self.grades_from_report = self.parser.extract_grades()
+        self.group_ids = self.parser.extract_group_ids(self.soup)
+        self.grades_from_report = self.parser.extract_grades(self.soup)
         self.grades = self.compute_grades()
 
 #        self.groups = self.get_groups()
 #        self.participants = self.get_participants()
 
+    def get_soup(self, filename):
+        """
+        Read the specified HTML file and parses its content using 
+        BeautifulSoup with the 'lxml' parser.
+    
+        Parameters
+        ----------
+        filename : str
+            Path to the HTML file exported from a Moodle workshop 
+            grades report.
+        
+        Returns
+        -------
+        bs4.BeautifulSoup
+            Parsed HTML content of the grades report, used
+            internally for extracting information.
+        """
+        with open(filename, 'r', encoding='utf-8') as file:
+            html_content = file.read()
+        return BeautifulSoup(html_content, 'lxml')
+        
     def get_course(self):
-        course_id = self.parser.extract_course_id()
+        course_id = self.parser.extract_course_id(self.soup)
         #course_title = self.parser.extract_course_title()
         return Course.from_csv(course_id)
 
