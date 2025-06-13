@@ -287,10 +287,13 @@ class Workshop(): # !!! Docstring
             else:
                 group_grade = grp.NULL_GRADE
             for full_name in full_names:
-                grades[full_name]['submission'] = group_grade
+                if self.grades_from_report[full_name]['submitted']:
+                    grades[full_name]['submission'] = group_grade
+                else:
+                    grades[full_name]['submission'] = 0
         for full_name in grades:
             submission = grades[full_name]['submission']
-            assessment = self.grades_from_report[full_name]['assessment']
+            assessment = self.grades_from_report[full_name]['grading']
             submission = submission if submission is not grp.NULL_GRADE else 0
             assessment = assessment if assessment is not grp.NULL_GRADE else 0
             grades[full_name]['overall'] = submission + assessment
@@ -301,7 +304,7 @@ class Workshop(): # !!! Docstring
         print('-------------------------------------------------------------')
         for full_name in self.grades:
             submission = self.grades[full_name]['submission']
-            assessment = self.grades_from_report[full_name]['assessment']
+            assessment = self.grades_from_report[full_name]['grading']
             if assessment == grp.NULL_GRADE:
                 assessment = 0
             overall = self.grades[full_name]['overall']
@@ -315,7 +318,7 @@ class Workshop(): # !!! Docstring
             writer.writerow(['Name', 'Submission', 'Assessment', 'Overall'])
             for full_name in self.grades:
                 submission = self.grades[full_name]['submission']
-                assessment = self.grades_from_report[full_name]['assessment']
+                assessment = self.grades_from_report[full_name]['grading']
                 if assessment == grp.NULL_GRADE:
                     assessment = 0
                 overall = self.grades[full_name]['overall']

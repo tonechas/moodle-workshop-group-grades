@@ -9,8 +9,18 @@ import re
 
 NULL_GRADE = '-'
 
+NO_SUBMISSION = (
+    'No submission found for this user',
+    'No se han encontrado envíos de este usuario',
+    'Non se atoparon entregas deste usuario',
+)
+
 PARTICIPANT_CELLS = (
     'participant cell c0',
+)
+
+SUBMISSION_CELLS = (
+    'submission cell c1',
 )
 
 GIVEN_GRADE_CELLS = (
@@ -23,6 +33,10 @@ RECEIVED_GRADE_CELLS = (
     'receivedgrade notnull cell c0',
     'receivedgrade notnull cell c2',
     'receivedgrade notnull cell c0 lastcol',
+)
+
+SUBMISSION_GRADE_CELLS = (
+    'submissiongrade cell c3',
 )
 
 GRADING_GRADE_CELLS = (
@@ -339,9 +353,11 @@ def extract_grades(soup):
 
     Parses each relevant table row to build a nested dictionary of
     grades, including:
+    - A boolean flag indicating whether the student submitted
+      an assignment.
     - Grades received by each participant from peers.
     - Grades given by each participant to peers.
-    - The assessment grade assigned to each participant.
+    - The grading grade assigned to each participant by Moodle.
 
     Also performs a consistency check to ensure that received and
     given grades match symmetrically across participants.
@@ -357,9 +373,10 @@ def extract_grades(soup):
         A dictionary where keys are participant names (str), and
         values are dictionaries with the following structure:
         {
+            'submitted': bool,
             'received': {grader_name: grade, ...},
             'given': {gradee_name: grade, ...},
-            'assessment': float or str (if NULL_GRADE)
+            'grading': float or str (if NULL_GRADE)
         }
 
     Raises
@@ -373,10 +390,16 @@ def extract_grades(soup):
         if td_part:
             participant = td_part.contents[-1].text
             grades[participant] = {
+                'submitted': False,
                 'received': dict(),
                 'given': dict(),
-                'assessment': NULL_GRADE,
+                'grading': NULL_GRADE,
             }        
+        td_sub = row.find('td', class_=lambda x: x in SUBMISSION_CELLS)
+        if td_sub:
+            title_tag = td_sub.find('a', class_='title')
+            if title_tag:
+                grades[participant]['submitted'] = True        
         td_rec = row.find('td', class_=lambda x: x in RECEIVED_GRADE_CELLS)
         if td_rec:
             fullname_tag = td_rec.find('span', class_='fullname')
@@ -395,7 +418,7 @@ def extract_grades(soup):
         if td_grad:
             if td_grad.get_text() != NULL_GRADE:
                 grade = get_grade(td_grad)
-                grades[participant]['assessment'] = grade
+                grades[participant]['grading'] = grade
     # Sanity check
     for gradee in grades:
         for grader in grades[gradee]['received']:
