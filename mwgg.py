@@ -11,7 +11,35 @@ import grades_report_parser as grp
 DATA_FOLDER = r'C:\Users\Tonechas\Dropbox\OngoingWork\GroupsInWorkshops'
 
 
-def normalize(text): # !!! Docstring
+def normalize(text):
+    """
+    Removing accents from a string and convert to lowercase.
+
+    Helper function for sorting strings in a way that ignores
+    diacritical marks (accents) and case.
+
+    Parameters
+    ----------
+    text : str
+        The input string to normalize.
+
+    Returns
+    -------
+    str
+        A normalized version of the input string without accents, 
+        converted to lowercase.
+
+    Examples
+    --------
+    >>> normalize('Ángel Fernández Peña')
+    'angel fernandez pena'
+    
+    >>> names = ['ángel', 'Marta', 'Óscar', 'María', 'Ana']
+    >>> sorted(names)  # Unicode order (not what we want)
+    ['Ana', 'Marta', 'María', 'Óscar', 'ángel']
+    >>> sorted(names, key=normalize)  # Normalized order
+    ['Ana', 'ángel', 'María', 'Marta', 'Óscar']
+    """
     return ''.join(
         c for c in unicodedata.normalize('NFKD', text)
         if not unicodedata.combining(c)
@@ -50,6 +78,7 @@ class User():
     User('John Doe')
     >>> user1.group_ids
     ('G1', 'Group 2.3')
+    
     >>> user2 = User('Roe', 'Jane')
     >>> user2.full_name
     'Jane Roe'
@@ -96,12 +125,16 @@ class Group():
     >>> g1 = Group('Group 1')
     >>> print(g1)
     Group('Group 1')
+    >>> g1.group_ID
+    'Group 1'
     >>> g1.members
     ()
+    
     >>> user1 = User('Doe', 'Chris', 'A')
     >>> g2 = Group('A', (user1,))
     >>> g2.members
     (User('Chris Doe'),)
+    
     >>> user2 = User('Smith', 'Sally', ['A', 'G3'])
     >>> g3 = Group('G3', [user1, user2])
     >>> g3.members
