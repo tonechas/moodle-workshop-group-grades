@@ -1,6 +1,7 @@
 import csv
 import doctest
 from pathlib import Path
+import unicodedata
 
 from bs4 import BeautifulSoup
 
@@ -8,6 +9,13 @@ import grades_report_parser as grp
 
 # !!! Fix this
 DATA_FOLDER = r'C:\Users\Tonechas\Dropbox\OngoingWork\GroupsInWorkshops'
+
+
+def normalize(text): # !!! Docstring
+    return ''.join(
+        c for c in unicodedata.normalize('NFKD', text)
+        if not unicodedata.combining(c)
+    ).lower()
 
 
 class User():
@@ -55,6 +63,10 @@ class User():
         self.group_ids = group_ids if group_ids is not None else ()
     def __repr__(self):
         return f'{self.__class__.__name__}({self.full_name!r})'
+    def __lt__(self, other): # !!! Docstring
+        tup_self = (normalize(self.last_name), normalize(self.first_name))
+        tup_other = (normalize(other.last_name), normalize(other.first_name))
+        return tup_self < tup_other
 
 
 class Group():
@@ -172,7 +184,7 @@ class Course():
     """
     def __init__(self, course_id, users, groups):
         self.course_id = course_id
-        self.users = tuple(sorted(users, key=lambda x: x.last_name))
+        self.users = tuple(sorted(users))
         self.groups = tuple(sorted(groups, key=lambda x: x.group_id))
         for group in self.groups:
             group_users = []
@@ -184,7 +196,7 @@ class Course():
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.course_id})'
-    
+
     @classmethod
     def from_csv(cls, course_id):
         filename = f'courseid_{course_id}_participants.csv'
@@ -302,28 +314,33 @@ class Workshop(): # !!! Docstring
     def display_grades(self):
         print('Name                          Submission  Assessment  Overall')
         print('-------------------------------------------------------------')
-        for full_name in self.grades:
-            submission = self.grades[full_name]['submission']
-            assessment = self.grades_from_report[full_name]['grading']
-            if assessment == grp.NULL_GRADE:
-                assessment = 0
-            overall = self.grades[full_name]['overall']
-            print(f'{full_name:30}{submission:10.2f}'
-                  f'{assessment:10.2f}{overall:11.2f}')
+        for user in sorted(p4.course.users):
+            full_name = user.full_name
+            if full_name in self.grades:
+                submission = self.grades[full_name]['submission']
+                assessment = self.grades_from_report[full_name]['grading']
+                if assessment == grp.NULL_GRADE:
+                    assessment = 0
+                overall = self.grades[full_name]['overall']
+                print(f'{full_name:30}{submission:10.2f}'
+                      f'{assessment:10.2f}{overall:11.2f}')
 
     def save_grades(self, filename):
         
         with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
             writer = csv.writer(csvfile, delimiter=',')
             writer.writerow(['Name', 'Submission', 'Assessment', 'Overall'])
-            for full_name in self.grades:
-                submission = self.grades[full_name]['submission']
-                assessment = self.grades_from_report[full_name]['grading']
-                if assessment == grp.NULL_GRADE:
-                    assessment = 0
-                overall = self.grades[full_name]['overall']
-                writer.writerow([full_name, f'{submission:4.2f}',
-                                 f'{assessment:4.2f}', f'{overall:4.2f}'])
+            
+            for user in sorted(p4.course.users):
+                full_name = user.full_name
+                if full_name in self.grades.keys():
+                    submission = self.grades[full_name]['submission']
+                    assessment = self.grades_from_report[full_name]['grading']
+                    if assessment == grp.NULL_GRADE:
+                        assessment = 0
+                    overall = self.grades[full_name]['overall']
+                    writer.writerow([full_name, f'{submission:4.2f}',
+                                     f'{assessment:4.2f}', f'{overall:4.2f}'])
 
 
 
@@ -365,6 +382,11 @@ p4 = Workshop(html_file)
 p4.save_grades(csv_file)
 p4.display_grades()
 
+# !!!
+len(p4.grades) == len(p4.course.users)
+
+
 #eg = Course.from_csv(23252)
 #html_file = Path(DATA_FOLDER, 'eg-shaft-support.htm')
 #csv_file = Path(DATA_FOLDER, 'eg-shatft-support.csv')
+
