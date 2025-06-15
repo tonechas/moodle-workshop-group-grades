@@ -34,11 +34,11 @@ def normalize(text):
     >>> normalize('Ángel Fernández Peña')
     'angel fernandez pena'
     
-    >>> names = ['ángel', 'Marta', 'Óscar', 'María', 'Ana']
+    >>> names = ['ángel', 'Marta', 'Óscar', 'María', 'Elena', 'ana']
     >>> sorted(names)  # Unicode order (not what we want)
-    ['Ana', 'Marta', 'María', 'Óscar', 'ángel']
+    ['Elena', 'Marta', 'María', 'ana', 'Óscar', 'ángel']
     >>> sorted(names, key=normalize)  # Normalized order
-    ['Ana', 'ángel', 'María', 'Marta', 'Óscar']
+    ['ana', 'ángel', 'Elena', 'María', 'Marta', 'Óscar']
     """
     return ''.join(
         c for c in unicodedata.normalize('NFKD', text)
@@ -92,7 +92,37 @@ class User():
         self.group_ids = group_ids if group_ids is not None else ()
     def __repr__(self):
         return f'{self.__class__.__name__}({self.full_name!r})'
-    def __lt__(self, other): # !!! Docstring
+    def __lt__(self, other):
+        """
+        Compare two User instances for sorting purposes.
+    
+        Users are compared by their last names and first names in a
+        case-insensitive and accent-insensitive manner using the
+        `normalize()` helper function.
+    
+        Parameters
+        ----------
+        other : User
+            Another instance of User to compare against.
+    
+        Returns
+        -------
+        bool
+            True if the current user should come before `other`
+            in sorted order, False otherwise.
+    
+        Examples
+        --------
+        >>> u1 = User('Johnson', 'Bob')
+        >>> u2 = User('Smith', 'Alice')
+        >>> u1 < u2
+        True
+        
+        >>> u3 = User('Pérez', 'Mario')
+        >>> u4 = User('Pérez', 'María')
+        >>> u3 < u4
+        False
+        """
         tup_self = (normalize(self.last_name), normalize(self.first_name))
         tup_other = (normalize(other.last_name), normalize(other.first_name))
         return tup_self < tup_other
@@ -125,7 +155,7 @@ class Group():
     >>> g1 = Group('Group 1')
     >>> print(g1)
     Group('Group 1')
-    >>> g1.group_ID
+    >>> g1.group_id
     'Group 1'
     >>> g1.members
     ()
