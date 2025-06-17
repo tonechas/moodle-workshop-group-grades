@@ -4,16 +4,22 @@ from pathlib import Path
 import unicodedata
 
 from bs4 import BeautifulSoup
+import matplotlib.pyplot as plt
+import numpy as np
 
 import grades_report_parser as grp
 
+# !!! requirements.txt
 # !!! Fix this
 DATA_FOLDER = r'C:\Users\Tonechas\Dropbox\OngoingWork\GroupsInWorkshops'
+
+GRADE_MIN = 0
+GRADE_MAX = 100
 
 
 def normalize(text):
     """
-    Removing accents from a string and convert to lowercase.
+    Remove accents from a string and convert to lowercase.
 
     Helper function for sorting strings in a way that ignores
     diacritical marks (accents) and case.
@@ -406,7 +412,7 @@ class Workshop(): # !!! Docstring
                                      f'{assessment:4.2f}', f'{overall:4.2f}'])
 
 
-
+    # !!! Add sanity tests
     # def get_participants(self):
     #     full_names = self.soup.extract_participants()
     #     if len(full_names) != len(set(full_names)):
@@ -448,6 +454,48 @@ p4.display_grades()
 # !!!
 len(p4.grades) == len(p4.course.users)
 
+
+#for user in p4.course.users: !!! Fix this error
+per_user = []
+per_group = []
+for user in p4.grades_from_report:
+    if p4.grades_from_report[user]['submitted']:
+        raw_grade = p4.grades_from_report[user]['submission']
+        grade = 0 if raw_grade == grp.NULL_GRADE else raw_grade
+        per_user.append(grade)
+        per_group.append(p4.grades[user]['submission'])
+
+per_user = np.array(per_user)
+per_group = np.array(per_group)
+
+
+bins = np.linspace(GRADE_MIN, GRADE_MAX, 21)
+bins[-1] += 1e-6  # To include 100 in the last bin
+
+hist_users, _ = np.histogram(per_user, bins=bins, density=False)
+hist_groups, _ = np.histogram(per_group, bins=bins, density=False)
+
+bin_width = bins[1] - bins[0]
+bin_centers = bins[:-1] + bin_width / 2
+
+# Ancho de las barras para cada conjunto (dividir el bin en 2)
+bar_width = bin_width / 2
+
+# Graficar: barras pegadas una a otra para cada bin
+plt.bar(bin_centers - bar_width / 2, hist_users, width=bar_width, alpha=0.7, label='Per user')
+plt.bar(bin_centers + bar_width / 2, hist_groups, width=bar_width, alpha=0.7, label='Per group')
+
+plt.xlabel('Submission grade')
+plt.ylabel('Frequency')
+plt.title('Histograms of submission grades per user and per group')
+plt.legend()
+plt.grid(True)
+plt.show()
+
+print(f'{per_user.mean() = :.2f}')
+print(f'{per_user.std() = :.2f}')
+print(f'{per_group.mean() = :.2f}')
+print(f'{per_group.std() = :.2f}')
 
 #eg = Course.from_csv(23252)
 #html_file = Path(DATA_FOLDER, 'eg-shaft-support.htm')

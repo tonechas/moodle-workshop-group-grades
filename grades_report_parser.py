@@ -376,6 +376,7 @@ def extract_grades(soup):
             'submitted': bool,
             'received': {grader_name: grade, ...},
             'given': {gradee_name: grade, ...},
+            'submission': float or str (if NULL_GRADE),
             'grading': float or str (if NULL_GRADE)
         }
 
@@ -393,6 +394,7 @@ def extract_grades(soup):
                 'submitted': False,
                 'received': dict(),
                 'given': dict(),
+                'submission': NULL_GRADE,
                 'grading': NULL_GRADE,
             }        
         td_sub = row.find('td', class_=lambda x: x in SUBMISSION_CELLS)
@@ -414,6 +416,11 @@ def extract_grades(soup):
             grade_tag = td_given.find('span', class_='grade')
             grade = get_grade(grade_tag)
             grades[participant]['given'][gradee] = grade
+        td_subg = row.find('td', class_=lambda x: x in SUBMISSION_GRADE_CELLS)
+        if td_subg:
+            if td_subg.get_text() != NULL_GRADE:
+                grade = get_grade(td_subg)
+                grades[participant]['submission'] = grade
         td_grad = row.find('td', class_=lambda x: x in GRADING_GRADE_CELLS)
         if td_grad:
             if td_grad.get_text() != NULL_GRADE:
