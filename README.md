@@ -35,7 +35,7 @@ To run the script, execute the following command:
 
 After that, a dialog box will appear prompting you to select the directory containing the two required data files.
 
-### `courseid_&lt;course_id&gt;_participants.csv`
+### `courseid_<course_id>_participants.csv`
 
 This file can be generated as follows:
 - Go to "Participants" in your Moodle course.
@@ -53,24 +53,30 @@ Michael,Harris,mike2007@fakemail.net,G3_1
 Emily,Carter,milly@.test.com,"A, G3_2"
 ```
 
-### `&lt;workshop_id&gt;.htm`
+### `<workshop_id>.htm`
 
-This is the HTML code of the Workshop grades report. `<workshop_id>` must be replaced by an identifier, for example `HISTORY204D-essay` or `CS101-project`. The report looks like this.
+This is the HTML code of the Workshop grades report. Note that `<workshop_id>` must be replaced by an identifier, for example `HISTORY204D-essay` or `CS101-project`. The report looks like this.
 
 <figure>
   <img src="https://grok.lsu.edu/image/56192.jpg" alt="Screenshot of Workshop grades report" width="auto">
   <figcaption>Source: <a href="https://grok.lsu.edu/article.aspx?articleid=56192">GROK Knowledge Base, LSU</a></figcaption>
 </figure>
 
-### `&lt;workshop_id&gt;.csv`
+### `<workshop_id>.csv`
 
 This file is the output produced by the script execution. The file is structured into four columns:
 ```text
-Name,Submission,Assessment,Overall
-Peter Smith,72.45,91.00,76.16
-Jane Bloggs,72.45,86.50,75.26
-Alice Johnson,69.37,72.35,60.97
-John Doe,69.37,78.20,71.14
-Michael Harris,81.26,92.30,83.47
-Emily Carter,,81.26,94.15,83.84
+Email address,Submission,Assessment,Overall
+pete@gmail.com,72.45,91.00,76.16
+jenny@yahoo.com,72.45,86.50,75.26
+alicej@hotmail.com,69.37,72.35,60.97
+johny@example.com,69.37,78.20,71.14
+mike2007@fakemail.net,81.26,92.30,83.47
+milly@.test.com,81.26,94.15,83.84
 ```
+Then you have to complete the following steps:
+1. In your Moodle course, go to **Grades** → **Import** and choose **CSV file**.
+2. Upload your `.csv` file.
+3. In **Identify user by**, select the field that matches your file (e.g., **Email address**).
+4. Match each column in your file to an existing grade item or choose to **create a new grade item**.
+5. Click **Upload grades**. Moodle will confirm how many grades were updated.
