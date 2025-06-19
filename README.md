@@ -9,34 +9,34 @@ Tool for parsing Moodle Workshop grades report to extract peer assessments and c
 
 1. Clone this repository:
 ```console
-C:\Users\Me>git clone https://github.com/tonechas/moodle-workshop-group-grades.git
+$ git clone https://github.com/tonechas/moodle-workshop-group-grades.git
 ```
 
 2. Create a virtual environment:
 ```console
-C:\Users\Me>python -m venv path\to\venvs\directory\mwgg python=3.13.2
+$ python -m venv path\to\venvs\directory\mwgg python=3.13.2
 ```
 
 3. Activate the virtual environment:
 ```console
-C:\Users\Me>path\to\venvs\directory\mwgg\Scripts\activate
+$ path\to\venvs\directory\mwgg\Scripts\activate
 ```
 
 4. Install the dependencies:
 ```console
-(mwgg) C:\Users\Me>cd mwgg
-(mygg) C:\Users\Me\mwgg>pip install -r requirements.txt
+(mwgg) $ pip install -r path\to\venvs\directory\mwgg\requirements.txt
 ```
 
 ## Usage
 To run the script, execute the following command:
 ```console
-(myvenv) C:\Users\Me\mwgg>python mwgg.py
+(mwgg) $ python path\to\venvs\directory\mwgg\mwgg.py
 ```
 
 After that, a dialog box will appear prompting you to select the directory containing the two required data files.
 
-###`courseid_<course_id>_participants.csv`
+### `courseid_&lt;course_id&gt;_participants.csv`
+
 This file can be generated as follows:
 - Go to "Participants" in your Moodle course.
 - Select all users.
@@ -53,12 +53,17 @@ Michael,Harris,mike2007@fakemail.net,G3_1
 Emily,Carter,milly@.test.com,"A, G3_2"
 ```
 
-###`<workshop_id>.htm`
+### `&lt;workshop_id&gt;.htm`
+
 This is the HTML code of the Workshop grades report. `<workshop_id>` must be replaced by an identifier, for example `HISTORY204D-essay` or `CS101-project`. The report looks like this.
 
-<img src="https://grok.lsu.edu/image/56192.jpg" alt="Screenshot of Workshop grades report" width="auto">
+<figure>
+  <img src="https://grok.lsu.edu/image/56192.jpg" alt="Screenshot of Workshop grades report" width="auto">
+  <figcaption>Source: <a href="https://grok.lsu.edu/article.aspx?articleid=56192">GROK Knowledge Base, LSU</a></figcaption>
+</figure>
 
-###`<workshop_id>.csv`
+### `&lt;workshop_id&gt;.csv`
+
 This file is the output produced by the script execution. The file is structured into four columns:
 ```text
 Name,Submission,Assessment,Overall
