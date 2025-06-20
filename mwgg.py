@@ -79,22 +79,25 @@ class User():
 
     Examples
     --------
-    >>> user1 = User('Doe', 'John', ('G1', 'Group 2.3'))
+    >>> user1 = User('Doe', 'John', 'johny@example.com', ('G1', 'Group 2.3'))
     >>> print(user1)
     User('John Doe')
+    >>> user1.email
+    'johny@example.com'
     >>> user1.group_ids
     ('G1', 'Group 2.3')
     
-    >>> user2 = User('Roe', 'Jane')
+    >>> user2 = User('Roe', 'Jane', 'jane2005@fakemail.net')
     >>> user2.full_name
     'Jane Roe'
     >>> user2.group_ids
     ()
     """
-    def __init__(self, last_name, first_name, group_ids=None):
+    def __init__(self, last_name, first_name, email, group_ids=None):
         self.last_name = last_name
         self.first_name = first_name
         self.full_name = f'{self.first_name} {self.last_name}'
+        self.email = email  # !!! Use email as id
         self.group_ids = group_ids if group_ids is not None else ()
     def __repr__(self):
         return f'{self.__class__.__name__}({self.full_name!r})'
@@ -119,13 +122,13 @@ class User():
     
         Examples
         --------
-        >>> u1 = User('Johnson', 'Bob')
-        >>> u2 = User('Smith', 'Alice')
+        >>> u1 = User('Johnson', 'Bob', 'bobby@example.com')
+        >>> u2 = User('Smith', 'Alice', 'alice2008@fakemail.net')
         >>> u1 < u2
         True
         
-        >>> u3 = User('Pérez', 'Mario')
-        >>> u4 = User('Pérez', 'María')
+        >>> u3 = User('Pérez', 'Mario', 'mario@example.com')
+        >>> u4 = User('Pérez', 'María', 'maria@fakemail.net')
         >>> u3 < u4
         False
         """
@@ -145,7 +148,7 @@ class Group():
         or 'Group 2_1'.
     members : tuple of User, optional
         A tuple of User instances.
-        Defaults to an empty list if not provided.
+        Defaults to an empty tuple if not provided.
 
     Attributes
     ----------
@@ -166,12 +169,12 @@ class Group():
     >>> g1.members
     ()
     
-    >>> user1 = User('Doe', 'Chris', 'A')
+    >>> user1 = User('Doe', 'Chris', 'chris@example.com', 'A')
     >>> g2 = Group('A', (user1,))
     >>> g2.members
     (User('Chris Doe'),)
     
-    >>> user2 = User('Smith', 'Sally', ['A', 'G3'])
+    >>> user2 = User('Smith', 'Sally', 'sally205@fakemail.net', ['A', 'G3'])
     >>> g3 = Group('G3', [user1, user2])
     >>> g3.members
     (User('Sally Smith'),)
@@ -281,13 +284,14 @@ class Course():
                     continue  # Skip malformed rows
                 first_name = line[0].strip()
                 last_name = line[1].strip()
+                email = line[2].strip()
                 try:
                     raw_ids = line[3].split(',')
                     group_ids = [group_id.strip() for group_id in raw_ids]
                 except IndexError:
                     # User does not belong to any group
                     group_ids = []
-                user = User(last_name, first_name, group_ids)
+                user = User(last_name, first_name, email, group_ids)
                 users.append(user)
                 for group_id in group_ids:
                     for group in groups:
@@ -313,7 +317,7 @@ class Workshop(): # !!! Docstring
 
     def get_soup(self, filename):
         """
-        Read the specified HTML file and parses its content using 
+        Read the specified HTML file and parse its content using 
         BeautifulSoup with the 'lxml' parser.
     
         Parameters
@@ -455,7 +459,6 @@ p4.display_grades()
 len(p4.grades) == len(p4.course.users)
 
 
-#for user in p4.course.users: !!! Fix this error
 per_user = []
 per_group = []
 for user in p4.grades_from_report:
