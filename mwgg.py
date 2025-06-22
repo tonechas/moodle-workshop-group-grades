@@ -303,7 +303,41 @@ class Course():
         return cls(course_id, users, groups)
 
 
-class Workshop(): # !!! Docstring
+class Workshop():
+    """
+    Represents a Moodle workshop and manages group-based grading.
+
+    This class parses a Moodle workshop HTML report to extract 
+    the course ID, group identifiers, and user grades. It links 
+    report data with the corresponding course participants 
+    loaded from a CSV file, computes group submission scores, 
+    and combines them with assessment grades.
+
+    Parameters
+    ----------
+    filename : str
+        Path to the HTML report file exported from Moodle.
+
+    Attributes
+    ----------
+    soup : bs4.BeautifulSoup
+        Parsed HTML content of the workshop report.
+    workshop_title : str
+        Title of the workshop, as shown in the report.
+    course : Course
+        Course instance with users and group membership.
+    group_ids : list of str
+        List of group IDs found in the HTML report.
+    grades_from_report : dict of str to dict
+        Raw grading data extracted from the report. Each key is a 
+        user's full name; each value is a dictionary with keys 
+        'submitted', 'received', 'given', 'submission' and 'grading'.
+    grades : dict of str to dict
+        Computed grades for each user. Each key is a user's full 
+        name; each value is a dictionary with keys 'submission' 
+        and 'overall', representing the group submission score 
+        and the total grade (submission + assessment).
+    """
     def __init__(self, filename):
         self.soup = self.get_soup(filename)
         self.workshop_title = grp.extract_workshop_title(self.soup)
@@ -312,8 +346,6 @@ class Workshop(): # !!! Docstring
         self.grades_from_report = grp.extract_grades(self.soup)
         self.grades = self.compute_grades()
 
-#        self.groups = self.get_groups()
-#        self.participants = self.get_participants()
 
     def get_soup(self, filename):
         """
@@ -343,19 +375,21 @@ class Workshop(): # !!! Docstring
 
         
     def get_workshop_groups(self):
-            # course = Course.from_csv(self.course_id)
-            # users = course.users
-            # groups = []
-            # for group_id in self.group_ids:
-            #     members = []
-            #     for user in users:
-            #         if group_id in user.group_ids:
-            #             members.append(user)
-            #     group = Group(group_id, members)
-            #     groups.append(group)
-            groups = [group for group in self.course.groups
-                      if group.group_id in self.group_ids]
-            return groups
+        """
+        Return the list of groups involved in the current workshop.
+    
+        Filters the course's groups to include only those whose 
+        group IDs appear in the HTML report. These are the groups 
+        that actively participated in the workshop.
+    
+        Returns
+        -------
+        groups : list of Group
+            Groups matched by ID as listed in the workshop report.
+        """
+        groups = [group for group in self.course.groups
+                  if group.group_id in self.group_ids]
+        return groups
 
     def compute_grades(self):
         grades = dict()
