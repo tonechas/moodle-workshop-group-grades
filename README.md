@@ -24,13 +24,13 @@ $ path\to\venvs\directory\mwgg\Scripts\activate
 
 4. Install the dependencies:
 ```console
-(mwgg) $ pip install -r path\to\venvs\directory\mwgg\requirements.txt
+(mwgg) $ pip install -r path\to\moodle-workshop-group-grades\requirements.txt
 ```
 
 ## Usage
 To run the script, execute the following command:
 ```console
-(mwgg) $ python path\to\venvs\directory\mwgg\mwgg.py
+(mwgg) $ python path\to\moodle-workshop-group-grades\mwgg.py
 ```
 
 After that, a dialog box will appear prompting you to select the directory containing the two required data files.
@@ -38,11 +38,11 @@ After that, a dialog box will appear prompting you to select the directory conta
 ### `courseid_<course_id>_participants.csv`
 
 This file can be generated as follows:
-- Go to "Participants" in your Moodle course.
+- Go to **Participants** in your Moodle course.
 - Select all users.
-- In the "With selected users..." dropdown menu select the "Download table as comma separated values (.csv)" option.
+- In the **With selected users...** dropdown menu select the **Download table as comma separated values (.csv)** option.
 
-Notice that you have to replace `<course_id>` by the ID of your course, for example `12345`. The course data file is organized as shown below:
+Notice that you have to replace `<course_id>` by the ID of your course, for example `12345`. The course data file must be organized as shown below:
 ```text
 "First name",Surname,"Email address",Groups
 Peter,Smith,pete@gmail.com,"A, G1_1"
@@ -50,12 +50,12 @@ Jane,Bloggs,jenny@yahoo.com,"B, G1_1"
 Alice,Johnson,alicej@hotmail.com,"B, G1_2"
 John,Doe,johny@example.com,G2_2
 Michael,Harris,mike2007@fakemail.net,G3_1
-Emily,Carter,milly@.test.com,"A, G3_2"
+Emily,Carter,milly@test.com,"A, G3_2"
 ```
 
 ### `<workshop_id>.htm`
 
-This is the HTML code of the Workshop grades report. Note that `<workshop_id>` must be replaced by an identifier, for example `HISTORY204D-essay` or `CS101-project`. The report looks like this.
+This is the HTML code of the Workshop grades report. Note that `<workshop_id>` shoyld be replaced by an identifier, for example `HISTORY204D-essay` or `CS101-project`. The report looks like this:
 
 <figure>
   <img src="https://grok.lsu.edu/image/56192.jpg" alt="Screenshot of Workshop grades report" width="auto">
