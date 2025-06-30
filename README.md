@@ -55,7 +55,7 @@ Emily,Carter,milly@test.com,"A, G3_2"
 
 ### `<workshop_id>.htm`
 
-This is the HTML code of the Workshop grades report. Note that `<workshop_id>` shoyld be replaced by an identifier, for example `HISTORY204D-essay` or `CS101-project`. The report looks like this:
+This is the HTML code of the Workshop grades report. Note that `<workshop_id>` should be replaced by an identifier, for example `HISTORY204D-essay` or `CS101-project`. The report looks like this:
 
 <figure>
   <img src="https://grok.lsu.edu/image/56192.jpg" alt="Screenshot of Workshop grades report" width="auto">
@@ -72,11 +72,11 @@ jenny@yahoo.com,72.45,86.50,75.26
 alicej@hotmail.com,69.37,72.35,60.97
 johny@example.com,69.37,78.20,71.14
 mike2007@fakemail.net,81.26,92.30,83.47
-milly@.test.com,81.26,94.15,83.84
+milly@test.com,81.26,94.15,83.84
 ```
 Then you have to complete the following steps:
 1. In your Moodle course, go to **Grades** → **Import** and choose **CSV file**.
-2. Upload your `.csv` file.
+2. Upload your `<workshop_id>.csv` file.
 3. In **Identify user by**, select the field that matches your file (e.g., **Email address**).
 4. Match each column in your file to an existing grade item or choose to **create a new grade item**.
 5. Click **Upload grades**. Moodle will confirm how many grades were updated.
