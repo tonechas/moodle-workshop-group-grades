@@ -215,8 +215,34 @@ def extract_course_id(soup):
     Raises
     ------
     AttributeError
-        If the breadcrumb or the expected link structure
-        is not found.
+        If the script or the courseId is not found.
+
+    Examples
+    --------
+    >>> from bs4 import BeautifulSoup
+    >>> good_script = '''
+    ...     <script>
+    ...     var M = {}; M.yui = {};
+    ...     M.pageloadstarttime = new Date();
+    ...     M.cfg = {"admin":"admin","language":"en","courseId":22862};
+    ...     YUI_config = {"debug":false};
+    ...     M.yui.loader = {modules: {}};
+    ...     </script>'''
+    >>> good_soup = BeautifulSoup(good_script, 'lxml')
+    >>> extract_course_id(good_soup)
+    22862
+    >>> bad_script = '''
+    ...     <script>
+    ...     var M = {}; M.yui = {};
+    ...     M.pageloadstarttime = new Date();
+    ...     M.cfg = {"admin":"admin","language":"en"};
+    ...     YUI_config = {"debug":false};
+    ...     M.yui.loader = {modules: {}};
+    ...     </script>'''
+    >>> bad_soup = BeautifulSoup(bad_script, 'lxml')
+    >>> extract_course_id(bad_soup) # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+    AttributeError: Unable to extract "courseId".
     """
     for script_tag in soup.find_all('script'):
         content = script_tag.string
