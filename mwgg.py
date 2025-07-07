@@ -9,7 +9,6 @@ import numpy as np
 
 import grades_report_parser as grp
 
-# !!! requirements.txt
 # !!! Fix this
 DATA_FOLDER = r'C:\Users\Tonechas\Dropbox\OngoingWork\GroupsInWorkshops'
 
@@ -369,9 +368,29 @@ class Workshop():
         return BeautifulSoup(html_content, 'lxml')
         
     def get_course(self):
+        """
+        Load course participant data based on the course ID.
+
+        This method extracts the course ID from the workshop's HTML
+        report and uses it to instantiate a `Course` object by reading
+        the corresponding CSV file. The CSV file is expected to be
+        named `courseid_<id>_participants.csv`.
+
+        Returns
+        -------
+        course_obj : Course
+            A `Course` object containing the list of users and groups
+            associated with the workshop's course.
+
+        See Also
+        --------
+        Course.from_csv : Method that reads and parses the CSV
+        participant list.
+        """
         course_id = grp.extract_course_id(self.soup)
         #course_title = self.parser.extract_course_title()
-        return Course.from_csv(course_id)
+        course_obj = Course.from_csv(course_id)
+        return course_obj
 
         
     def get_workshop_groups(self):
