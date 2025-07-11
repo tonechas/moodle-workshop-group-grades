@@ -61,8 +61,8 @@ class User():
         The user's last name.
     first_name : str
         The user's first name.
-    group_ids : tuple of str, optional
-        A list of IDs of the groups to which the user belongs.
+    group_ids : str, list of str, or None, optional
+        An ID or a list of IDs of the group(s) to which the user belongs.
         Defaults to None if not provided.
 
     Attributes
@@ -74,11 +74,13 @@ class User():
     full_name : str
         The user's full name in the format "First Last".
     group_ids : tuple of str
-        The IDs of the groups to which the user belongs.
+        Group IDs associated with the user. Always stored as a tuple, 
+        regardless of whether a single string, a list of strings, or
+        `None` was passed at initialization.
 
     Examples
     --------
-    >>> user1 = User('Doe', 'John', 'johny@example.com', ('G1', 'Group 2.3'))
+    >>> user1 = User('Doe', 'John', 'johny@example.com', ['G1', 'Group 2.3'])
     >>> print(user1)
     User('John Doe')
     >>> user1.email
@@ -91,15 +93,40 @@ class User():
     'Jane Roe'
     >>> user2.group_ids
     ()
+
+    >>> user3 = User('Smith', 'Alice', 'alice2008@fakemail.net', 'A2')
+    >>> user3.group_ids
+    ('A2',)
+
+    >>> user4 = User('Brown', 'Charlie', 'charlie@nomail.com', None)
+    >>> user4.group_ids
+    ()
     """
     def __init__(self, last_name, first_name, email, group_ids=None):
         self.last_name = last_name
         self.first_name = first_name
         self.full_name = f'{self.first_name} {self.last_name}'
-        self.email = email  # !!! Use email as id
-        self.group_ids = group_ids if group_ids is not None else ()
+        self.email = email
+        self.group_ids = group_ids
+    
+    @property
+    def group_ids(self):
+        return self._group_ids
+
+    @group_ids.setter
+    def group_ids(self, ids):
+        if ids is None:
+            self._group_ids = ()
+        elif isinstance(ids, str):
+            self._group_ids = (ids,)
+        elif isinstance(ids, list):
+            self._group_ids = tuple(ids)
+        else:
+            raise ValueError('Invalid groups IDs')
+
     def __repr__(self):
         return f'{self.__class__.__name__}({self.full_name!r})'
+
     def __lt__(self, other):
         """
         Compare two User instances for sorting purposes.
@@ -121,14 +148,14 @@ class User():
     
         Examples
         --------
-        >>> u1 = User('Johnson', 'Bob', 'bobby@example.com')
-        >>> u2 = User('Smith', 'Alice', 'alice2008@fakemail.net')
-        >>> u1 < u2
+        >>> user1 = User('Johnson', 'Bob', 'bobby@example.com')
+        >>> user2 = User('Smith', 'Alice', 'alice2008@fakemail.net')
+        >>> user1 < user2
         True
         
-        >>> u3 = User('Pérez', 'Mario', 'mario@example.com')
-        >>> u4 = User('Pérez', 'María', 'maria@fakemail.net')
-        >>> u3 < u4
+        >>> user3 = User('Pérez', 'Mario', 'mario@example.com')
+        >>> user4 = User('Pérez', 'María', 'maria@fakemail.net')
+        >>> user3 < user4
         False
         """
         tup_self = (normalize(self.last_name), normalize(self.first_name))
@@ -145,8 +172,8 @@ class Group():
     group_id : str
         A unique identifier for the group, such as 'A', 'C3.2'
         or 'Group 2_1'.
-    members : tuple of User, optional
-        A tuple of User instances.
+    members : list of User, optional
+        A list of User instances.
         Defaults to an empty tuple if not provided.
 
     Attributes
@@ -160,23 +187,27 @@ class Group():
 
     Examples
     --------
-    >>> g1 = Group('Group 1')
-    >>> print(g1)
+    >>> group1 = Group('Group 1')
+    >>> print(group1)
     Group('Group 1')
-    >>> g1.group_id
+    >>> group1.group_id
     'Group 1'
-    >>> g1.members
+    >>> group1.members
     ()
     
     >>> user1 = User('Doe', 'Chris', 'chris@example.com', 'A')
-    >>> g2 = Group('A', (user1,))
-    >>> g2.members
+    >>> group2 = Group('A', (user1,))
+    >>> group2.members
     (User('Chris Doe'),)
     
     >>> user2 = User('Smith', 'Sally', 'sally205@fakemail.net', ['A', 'G3'])
-    >>> g3 = Group('G3', [user1, user2])
-    >>> g3.members
+    >>> group3 = Group('G3', [user1, user2])
+    >>> group3.members
     (User('Sally Smith'),)
+
+    >>> group4 = Group('A', [user1, user2])
+    >>> group4.members
+    (User('Chris Doe'), User('Sally Smith'))
     """
     def __init__(self, group_id, members=None):
         self.group_id = group_id
@@ -186,6 +217,7 @@ class Group():
             self.members = tuple(
                 member for member in members if group_id in member.group_ids
             )
+
     def __repr__(self):
         return f'{self.__class__.__name__}({self.group_id!r})'
 
@@ -505,15 +537,16 @@ csv_file = Path(DATA_FOLDER, 'geo2-practica4.csv')
 
 geo2 = Course.from_csv(22862)
 p4 = Workshop(html_file)
+#%%
 p4.save_grades(csv_file)
 p4.display_grades()
 
 # !!!
 len(p4.grades) == len(p4.course.users)
 
-
 per_user = []
 per_group = []
+
 for user in p4.grades_from_report:
     if p4.grades_from_report[user]['submitted']:
         raw_grade = p4.grades_from_report[user]['submission']
@@ -523,28 +556,46 @@ for user in p4.grades_from_report:
 
 per_user = np.array(per_user)
 per_group = np.array(per_group)
+diff_group_user = per_group - per_user
 
+PLOT_DIFF = True
 
-bins = np.linspace(GRADE_MIN, GRADE_MAX, 21)
-bins[-1] += 1e-6  # To include 100 in the last bin
+bins_diff = np.linspace(-GRADE_MAX/5, GRADE_MAX/5, 21)
+bins_grade = np.linspace(GRADE_MIN, GRADE_MAX, 21)
+bins_grade[-1] += 1e-6  # To include 100 in the last bin
 
-hist_users, _ = np.histogram(per_user, bins=bins, density=False)
-hist_groups, _ = np.histogram(per_group, bins=bins, density=False)
+hist_users, _ = np.histogram(per_user, bins=bins_grade, density=False)
+hist_groups, _ = np.histogram(per_group, bins=bins_grade, density=False)
+hist_diff, _ = np.histogram(diff_group_user, bins=bins_diff, density=False)
 
-bin_width = bins[1] - bins[0]
-bin_centers = bins[:-1] + bin_width / 2
+bin_diff_width = bins_diff[1] - bins_diff[0]
+bin_diff_centers = bins_diff[:-1] + bin_diff_width / 2
+
+bin_grade_width = bins_grade[1] - bins_grade[0]
+bin_grade_centers = bins_grade[:-1] + bin_grade_width / 2
 
 # Ancho de las barras para cada conjunto (dividir el bin en 2)
-bar_width = bin_width / 2
+bar_diff_width = bin_diff_width / 2
+bar_grade_width = bin_grade_width / 2
 
 # Graficar: barras pegadas una a otra para cada bin
-plt.bar(bin_centers - bar_width / 2, hist_users, width=bar_width, alpha=0.7, label='Per user')
-plt.bar(bin_centers + bar_width / 2, hist_groups, width=bar_width, alpha=0.7, label='Per group')
-
-plt.xlabel('Submission grade')
 plt.ylabel('Frequency')
-plt.title('Histograms of submission grades per user and per group')
-plt.legend()
+if PLOT_DIFF:
+    plt.bar(bin_diff_centers - bar_diff_width / 2,
+            hist_diff, width=bar_diff_width, alpha=0.7)
+    plt.xlabel('Group grade - Submission grade')
+    plt.title('Histogram of differences between group and submission grades')
+else:
+    plt.bar(bin_grade_centers - bar_grade_width / 2,
+            hist_users, width=bar_grade_width, alpha=0.7, label='Per user')
+    plt.bar(bin_grade_centers + bar_grade_width / 2, 
+            hist_groups, width=bar_grade_width, alpha=0.7, label='Per group')
+    plt.xlabel('Submission grade')
+    plt.title('Histograms of submission grades per user and per group')
+    plt.legend()
+    
+
+
 plt.grid(True)
 plt.show()
 
@@ -552,6 +603,8 @@ print(f'{per_user.mean() = :.2f}')
 print(f'{per_user.std() = :.2f}')
 print(f'{per_group.mean() = :.2f}')
 print(f'{per_group.std() = :.2f}')
+print(f'{diff_group_user.mean() = :.2f}')
+print(f'{diff_group_user.std() = :.2f}')
 
 #eg = Course.from_csv(23252)
 #html_file = Path(DATA_FOLDER, 'eg-shaft-support.htm')
