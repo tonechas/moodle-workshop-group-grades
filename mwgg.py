@@ -172,9 +172,9 @@ class Group():
     group_id : str
         A unique identifier for the group, such as 'A', 'C3.2'
         or 'Group 2_1'.
-    members : list of User, optional
+    members : list of User, or None, optional
         A list of User instances.
-        Defaults to an empty tuple if not provided.
+        Defaults to None if not provided.
 
     Attributes
     ----------
@@ -196,7 +196,7 @@ class Group():
     ()
     
     >>> user1 = User('Doe', 'Chris', 'chris@example.com', 'A')
-    >>> group2 = Group('A', (user1,))
+    >>> group2 = Group('A', [user1])
     >>> group2.members
     (User('Chris Doe'),)
     
@@ -251,15 +251,16 @@ class Course():
     Raises
     ------
     ValueError
-        If any group's members do not match the users who list that
-        group's ID in their `group_ids` attribute.
+        Raised when any group includes users who do not declare
+        membership in that group via their `group_ids` attribute,
+        or when it is missing users who do declare such membership.
 
     Class Methods
     -------------
     from_csv(course_id)
         Constructs a Course instance from a Moodle CSV file named
         `courseid_<course_id>_participants.csv`. The file must have
-        four columns: first name, last name, email, and groups. Group
+        four columns: First name, Last name, Email, and Groups. Group
         names must be comma-separated.
 
     Examples
@@ -289,12 +290,15 @@ class Course():
         self.course_id = course_id
         self.users = tuple(sorted(users))
         self.groups = tuple(sorted(groups, key=lambda x: x.group_id))
+        # Sanity check: ensure that group membership is consistent —
+        # all users who declare membership in a group must appear in
+        # the group's member list, and vice versa.
         for group in self.groups:
-            group_users = []
+            group_users = set()
             for user in users:
                 if group.group_id in user.group_ids:
-                    group_users.append(user)
-            if [user for user in group_users if user not in group.members]:
+                    group_users.add(user)
+            if group_users != set(group.members):
                 raise ValueError(f'Group {group} is malformed')
 
     def __repr__(self):
