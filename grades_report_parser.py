@@ -396,12 +396,12 @@ def extract_grades(soup):
     Returns
     -------
     dict
-        A dictionary where keys are participant names (str), and
+        A dictionary where keys are participant IDs (int), and
         values are dictionaries with the following structure:
         {
             'submitted': bool,
-            'received': {grader_name: grade, ...},
-            'given': {gradee_name: grade, ...},
+            'received': {grader_id: grade, ...},
+            'given': {gradee_id: grade, ...},
             'submission': float or str (if NULL_GRADE),
             'grading': float or str (if NULL_GRADE)
         }
@@ -413,45 +413,61 @@ def extract_grades(soup):
     """
     grades = dict()
     for row in extract_rows(soup):
-        td_part = row.find('td', class_=lambda x: x in PARTICIPANT_CELLS)
-        if td_part:
-            participant = td_part.contents[-1].text
-            grades[participant] = {
+        td_participant = row.find(
+            'td',
+            class_=lambda x: x in PARTICIPANT_CELLS,
+        )
+        if td_participant:
+            link = td_participant.find('a', class_='d-inline-block aabtn')
+            match = re.search(r'id=(\d+)', link['href'])
+            participant_id = int(match.group(1)) if match else None
+            grades[participant_id] = {
                 'submitted': False,
                 'received': dict(),
                 'given': dict(),
                 'submission': NULL_GRADE,
                 'grading': NULL_GRADE,
             }        
-        td_sub = row.find('td', class_=lambda x: x in SUBMISSION_CELLS)
-        if td_sub:
-            title_tag = td_sub.find('a', class_='title')
+        td_submission = row.find('td', class_=lambda x: x in SUBMISSION_CELLS)
+        if td_submission:
+            title_tag = td_submission.find('a', class_='title')
             if title_tag:
-                grades[participant]['submitted'] = True        
-        td_rec = row.find('td', class_=lambda x: x in RECEIVED_GRADE_CELLS)
-        if td_rec:
-            fullname_tag = td_rec.find('span', class_='fullname')
-            grader = fullname_tag.get_text(strip=True)
-            grade_tag = td_rec.find('span', class_='grade')
+                grades[participant_id]['submitted'] = True        
+        td_received = row.find(
+            'td',
+            class_=lambda x: x in RECEIVED_GRADE_CELLS,
+        )
+        if td_received:
+            link = td_received.find('a', class_='d-inline-block aabtn')
+            match = re.search(r'id=(\d+)', link['href'])
+            grader_id = int(match.group(1)) if match else None
+            grade_tag = td_received.find('span', class_='grade')
             grade = get_grade(grade_tag)
-            grades[participant]['received'][grader] = grade
+            grades[participant_id]['received'][grader_id] = grade
         td_given = row.find('td', class_=lambda x: x in GIVEN_GRADE_CELLS)
         if td_given:
-            fullname_tag = td_given.find('span', class_='fullname')
-            gradee = fullname_tag.get_text(strip=True)
+            link = td_given.find('a', class_='d-inline-block aabtn')
+            match = re.search(r'id=(\d+)', link['href'])
+            gradee_id = int(match.group(1)) if match else None
             grade_tag = td_given.find('span', class_='grade')
             grade = get_grade(grade_tag)
-            grades[participant]['given'][gradee] = grade
-        td_subg = row.find('td', class_=lambda x: x in SUBMISSION_GRADE_CELLS)
-        if td_subg:
-            if td_subg.get_text() != NULL_GRADE:
-                grade = get_grade(td_subg)
-                grades[participant]['submission'] = grade
-        td_grad = row.find('td', class_=lambda x: x in GRADING_GRADE_CELLS)
-        if td_grad:
-            if td_grad.get_text() != NULL_GRADE:
-                grade = get_grade(td_grad)
-                grades[participant]['grading'] = grade
+            grades[participant_id]['given'][gradee_id] = grade
+        td_submission_grade = row.find(
+            'td',
+            class_=lambda x: x in SUBMISSION_GRADE_CELLS,
+        )
+        if td_submission_grade:
+            if td_submission_grade.get_text() != NULL_GRADE:
+                grade = get_grade(td_submission_grade)
+                grades[participant_id]['submission'] = grade
+        td_grading_grade = row.find(
+            'td',
+            class_=lambda x: x in GRADING_GRADE_CELLS,
+        )
+        if td_grading_grade:
+            if td_grading_grade.get_text() != NULL_GRADE:
+                grade = get_grade(td_grading_grade)
+                grades[participant_id]['grading'] = grade
     # Sanity check
     for gradee in grades:
         for grader in grades[gradee]['received']:

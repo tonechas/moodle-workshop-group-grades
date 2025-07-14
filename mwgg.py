@@ -12,6 +12,7 @@ import grades_report_parser as grp
 # !!! Fix this
 DATA_FOLDER = r'C:\Users\Tonechas\Dropbox\OngoingWork\GroupsInWorkshops'
 
+
 GRADE_MIN = 0
 GRADE_MAX = 100
 
@@ -57,20 +58,24 @@ class User():
 
     Parameters
     ----------
-    last_name : str
-        The user's last name.
     first_name : str
         The user's first name.
+    last_name : str
+        The user's last name.
+    id_number : int
+        The user's ID number in the Moodle database.
     group_ids : str, list of str, or None, optional
         An ID or a list of IDs of the group(s) to which the user belongs.
         Defaults to None if not provided.
 
     Attributes
     ----------
-    last_name : str
-        The user's last name.
     first_name : str
         The user's first name.
+    last_name : str
+        The user's last name.
+    id_number : int
+        The user's ID number in the Moodle database.
     full_name : str
         The user's full name in the format "First Last".
     group_ids : tuple of str
@@ -80,38 +85,52 @@ class User():
 
     Examples
     --------
-    >>> user1 = User('Doe', 'John', 'johny@example.com', ['G1', 'Group 2.3'])
-    >>> print(user1)
-    User('John Doe')
+    >>> user1 = User('John', 'Doe', 123456, 'johny@nomail.com', ['G1', 'A'])
+    >>> user1.full_name
+    'John Doe'
+    >>> user1.id_number
+    123456
     >>> user1.email
-    'johny@example.com'
+    'johny@nomail.com'
     >>> user1.group_ids
-    ('G1', 'Group 2.3')
+    ('G1', 'A')
+    >>> print(user1)
+    User('John Doe', 123456)
     
-    >>> user2 = User('Roe', 'Jane', 'jane2005@fakemail.net')
-    >>> user2.full_name
-    'Jane Roe'
+    >>> user2 = User('Alice', 'Smith', 3456789, 'alice08@example.net', 'A2')
     >>> user2.group_ids
-    ()
-
-    >>> user3 = User('Smith', 'Alice', 'alice2008@fakemail.net', 'A2')
-    >>> user3.group_ids
     ('A2',)
 
-    >>> user4 = User('Brown', 'Charlie', 'charlie@nomail.com', None)
+    >>> user3 = User('Jane', 'Roe', 234567, 'jane2005@fakemail.net')
+    >>> user3.full_name
+    'Jane Roe'
+    >>> user3.group_ids
+    ()
+
+    >>> user4 = User('James', 'Brown', 4567890, 'jim@example.com', None)
     >>> user4.group_ids
     ()
     """
-    def __init__(self, last_name, first_name, email, group_ids=None):
-        self.last_name = last_name
+    def __init__(
+            self,
+            first_name,
+            last_name,
+            id_number,
+            email,
+            group_ids=None,
+        ):
         self.first_name = first_name
+        self.last_name = last_name
         self.full_name = f'{self.first_name} {self.last_name}'
+        self.id_number = id_number
         self.email = email
         self.group_ids = group_ids
+    
     
     @property
     def group_ids(self):
         return self._group_ids
+
 
     @group_ids.setter
     def group_ids(self, ids):
@@ -124,8 +143,13 @@ class User():
         else:
             raise ValueError('Invalid groups IDs')
 
+
     def __repr__(self):
-        return f'{self.__class__.__name__}({self.full_name!r})'
+        class_ = self.__class__.__name__
+        full_name = self.full_name
+        id_number = self.id_number
+        return f'{class_}({full_name!r}, {id_number})'
+
 
     def __lt__(self, other):
         """
@@ -148,13 +172,13 @@ class User():
     
         Examples
         --------
-        >>> user1 = User('Johnson', 'Bob', 'bobby@example.com')
-        >>> user2 = User('Smith', 'Alice', 'alice2008@fakemail.net')
+        >>> user1 = User('Robert', 'Johnson', 123456, 'bobby@example.com')
+        >>> user2 = User('Alice', 'Smith', 234567, 'alice2008@fakemail.net')
         >>> user1 < user2
         True
         
-        >>> user3 = User('Pérez', 'Mario', 'mario@example.com')
-        >>> user4 = User('Pérez', 'María', 'maria@fakemail.net')
+        >>> user3 = User('Mario', 'Pérez', 345678, 'mario@example.com')
+        >>> user4 = User('María', 'Pérez', 456789, 'maria@fakemail.net')
         >>> user3 < user4
         False
         """
@@ -195,19 +219,19 @@ class Group():
     >>> group1.members
     ()
     
-    >>> user1 = User('Doe', 'Chris', 'chris@example.com', 'A')
+    >>> user1 = User('Chris', 'Doe', 111111, 'chris@example.com', 'A')
     >>> group2 = Group('A', [user1])
     >>> group2.members
-    (User('Chris Doe'),)
+    (User('Chris Doe', 111111),)
     
-    >>> user2 = User('Smith', 'Sally', 'sally205@fakemail.net', ['A', 'G3'])
+    >>> user2 = User('Sally', 'Smith', 222222, 'sally@nomail.net', ['A', 'G3'])
     >>> group3 = Group('G3', [user1, user2])
     >>> group3.members
-    (User('Sally Smith'),)
+    (User('Sally Smith', 222222),)
 
     >>> group4 = Group('A', [user1, user2])
     >>> group4.members
-    (User('Chris Doe'), User('Sally Smith'))
+    (User('Chris Doe', 111111), User('Sally Smith', 222222))
     """
     def __init__(self, group_id, members=None):
         self.group_id = group_id
@@ -267,20 +291,22 @@ class Course():
     --------
     >>> path = Path('.', 'courseid_12345_participants.csv')
     >>> with open(path, 'w') as f:
-    ...     print(r'"First name",Surname,"Email address",Groups', file=f)
-    ...     print(r'Sally,Smith,sally@gmail.com,"A, G1_2"', file=f)
-    ...     print(r'Joe,Bloggs,joe@yahoo.com,"B, G1_1"', file=f)
-    ...     print(r'Jane,Roe,jenny@hotmail.com,"B, G1_2"', file=f)
-    ...     print(r'John,Doe,johny@example.com,"A, G1_1"', file=f)
+    ...     print(r'"First name",Surname,"ID number","Email address",Groups', file=f)
+    ...     print(r'Sally,Smith,111111,sally@gmail.com,"A, G1_2"', file=f)
+    ...     print(r'Joe,Bloggs,222222,joe@yahoo.com,"B, G1_1"', file=f)
+    ...     print(r'Jane,Roe,333333,jenny@hotmail.com,"B, G1_2"', file=f)
+    ...     print(r'John,Doe,444444,johny@example.com,"A, G1_1"', file=f)
+    ...     print(r'Mary,Stewart,555555', file=f)
     ...
     >>> course = Course.from_csv(12345)
+    Incomplete user info: ['Mary', 'Stewart', '555555']
     >>> for user in course.users:
     ...     print(user)
     ...
-    User('Joe Bloggs')
-    User('John Doe')
-    User('Jane Roe')
-    User('Sally Smith')
+    User('Joe Bloggs', 222222)
+    User('John Doe', 444444)
+    User('Jane Roe', 333333)
+    User('Sally Smith', 111111)
     >>> type(course.users)
     <class 'tuple'>
     >>> course.groups
@@ -314,19 +340,20 @@ class Course():
             reader = csv.reader(file)
             next(reader)  # Skip header row
             for line in reader:
-                if len(line) < 2:
-                    print(f'Malformed user info: {line}')
+                if len(line) < 4:
+                    print(f'Incomplete user info: {line}')
                     continue  # Skip malformed rows
                 first_name = line[0].strip()
                 last_name = line[1].strip()
-                email = line[2].strip()
+                id_number = int(line[2].strip())
+                email = line[3].strip()
                 try:
-                    raw_ids = line[3].split(',')
+                    raw_ids = line[4].split(',')
                     group_ids = [group_id.strip() for group_id in raw_ids]
                 except IndexError:
                     # User does not belong to any group
                     group_ids = []
-                user = User(last_name, first_name, email, group_ids)
+                user = User(first_name, last_name, id_number, email, group_ids)
                 users.append(user)
                 for group_id in group_ids:
                     for group in groups:
@@ -365,12 +392,12 @@ class Workshop():
         List of group IDs found in the HTML report.
     grades_from_report : dict of str to dict
         Raw grading data extracted from the report. Each key is a 
-        user's full name; each value is a dictionary with keys 
+        user's ID; each value is a dictionary with keys 
         'submitted', 'received', 'given', 'submission' and 'grading'.
     grades : dict of str to dict
-        Computed grades for each user. Each key is a user's full 
-        name; each value is a dictionary with keys 'submission' 
-        and 'overall', representing the group submission score 
+        Computed grades for each user. Each key is a user's ID; 
+        each value is a dictionary with keys 'submission' and
+        'overall', representing the group submission score 
         and the total grade (submission + assessment).
     """
     def __init__(self, filename):
@@ -403,6 +430,7 @@ class Workshop():
             html_content = file.read()
         return BeautifulSoup(html_content, 'lxml')
         
+    
     def get_course(self):
         """
         Load course participant data based on the course ID.
@@ -446,46 +474,49 @@ class Workshop():
                   if group.group_id in self.group_ids]
         return groups
 
+
     def compute_grades(self):
         grades = dict()
-        groups = self.get_workshop_groups()
-        for group in groups:
-            full_names = [member.full_name for member in group.members]
+        workshop_groups = self.get_workshop_groups()
+        for group in workshop_groups:
+            id_numbers = [member.id_number for member in group.members]
             received = []
-            for full_name in full_names:
-                grades[full_name] = dict()
-                mapping = self.grades_from_report[full_name]
+            for id_number in id_numbers:
+                grades[id_number] = dict()
+                mapping = self.grades_from_report[id_number]
                 received.extend(mapping['received'].values())
             if received:
                 group_grade = sum(received)/len(received)
             else:
                 group_grade = grp.NULL_GRADE
-            for full_name in full_names:
-                if self.grades_from_report[full_name]['submitted']:
-                    grades[full_name]['submission'] = group_grade
+            for id_number in id_numbers:
+                if self.grades_from_report[id_number]['submitted']:
+                    grades[id_number]['submission'] = group_grade
                 else:
-                    grades[full_name]['submission'] = 0
-        for full_name in grades:
-            submission = grades[full_name]['submission']
-            assessment = self.grades_from_report[full_name]['grading']
+                    grades[id_number]['submission'] = 0
+        for id_number in grades:
+            submission = grades[id_number]['submission']
+            assessment = self.grades_from_report[id_number]['grading']
             submission = submission if submission is not grp.NULL_GRADE else 0
             assessment = assessment if assessment is not grp.NULL_GRADE else 0
-            grades[full_name]['overall'] = submission + assessment
+            grades[id_number]['overall'] = submission + assessment
         return grades
     
     def display_grades(self):
-        print('Name                          Submission  Assessment  Overall')
-        print('-------------------------------------------------------------')
+        print('ID      Name                          Submission  Assessment  Overall')
+        print('---------------------------------------------------------------------')
         for user in sorted(p4.course.users):
-            full_name = user.full_name
-            if full_name in self.grades:
-                submission = self.grades[full_name]['submission']
-                assessment = self.grades_from_report[full_name]['grading']
+            id_number = user.id_number
+            if id_number in self.grades:
+                submission = self.grades[id_number]['submission']
+                assessment = self.grades_from_report[id_number]['grading']
                 if assessment == grp.NULL_GRADE:
                     assessment = 0
-                overall = self.grades[full_name]['overall']
-                print(f'{full_name:30}{submission:10.2f}'
-                      f'{assessment:10.2f}{overall:11.2f}')
+                overall = self.grades[id_number]['overall']
+                print(f'{user.id_number:6d}  '
+                      f'{user.full_name:30}{submission:10.2f}'
+                      f'{assessment:12.2f}{overall:9.2f}')
+
 
     def save_grades(self, filename):
         
@@ -536,81 +567,93 @@ class Workshop():
 if __name__ == '__main__':
     doctest.testmod()
 
+    
 html_file = Path(DATA_FOLDER, 'geo2-practica4.htm')
 csv_file = Path(DATA_FOLDER, 'geo2-practica4.csv')
-
+    
 geo2 = Course.from_csv(22862)
 p4 = Workshop(html_file)
-#%%
-p4.save_grades(csv_file)
+
 p4.display_grades()
 
-# !!!
-len(p4.grades) == len(p4.course.users)
+    #%%
 
-per_user = []
-per_group = []
+if False:
 
-for user in p4.grades_from_report:
-    if p4.grades_from_report[user]['submitted']:
-        raw_grade = p4.grades_from_report[user]['submission']
-        grade = 0 if raw_grade == grp.NULL_GRADE else raw_grade
-        per_user.append(grade)
-        per_group.append(p4.grades[user]['submission'])
-
-per_user = np.array(per_user)
-per_group = np.array(per_group)
-diff_group_user = per_group - per_user
-
-PLOT_DIFF = True
-
-bins_diff = np.linspace(-GRADE_MAX/5, GRADE_MAX/5, 21)
-bins_grade = np.linspace(GRADE_MIN, GRADE_MAX, 21)
-bins_grade[-1] += 1e-6  # To include 100 in the last bin
-
-hist_users, _ = np.histogram(per_user, bins=bins_grade, density=False)
-hist_groups, _ = np.histogram(per_group, bins=bins_grade, density=False)
-hist_diff, _ = np.histogram(diff_group_user, bins=bins_diff, density=False)
-
-bin_diff_width = bins_diff[1] - bins_diff[0]
-bin_diff_centers = bins_diff[:-1] + bin_diff_width / 2
-
-bin_grade_width = bins_grade[1] - bins_grade[0]
-bin_grade_centers = bins_grade[:-1] + bin_grade_width / 2
-
-# Ancho de las barras para cada conjunto (dividir el bin en 2)
-bar_diff_width = bin_diff_width / 2
-bar_grade_width = bin_grade_width / 2
-
-# Graficar: barras pegadas una a otra para cada bin
-plt.ylabel('Frequency')
-if PLOT_DIFF:
-    plt.bar(bin_diff_centers - bar_diff_width / 2,
-            hist_diff, width=bar_diff_width, alpha=0.7)
-    plt.xlabel('Group grade - Submission grade')
-    plt.title('Histogram of differences between group and submission grades')
-else:
-    plt.bar(bin_grade_centers - bar_grade_width / 2,
-            hist_users, width=bar_grade_width, alpha=0.7, label='Per user')
-    plt.bar(bin_grade_centers + bar_grade_width / 2, 
-            hist_groups, width=bar_grade_width, alpha=0.7, label='Per group')
-    plt.xlabel('Submission grade')
-    plt.title('Histograms of submission grades per user and per group')
-    plt.legend()
+    p4.save_grades(csv_file)
     
+    
+    # !!! Obtener el user ID y utilizarlo como clave
+    # !!!
+    len(p4.grades) == len(p4.course.users)
+    
+    per_user = []
+    per_group = []
+    
+    for user in p4.grades_from_report:
+        if p4.grades_from_report[user]['submitted']:
+            raw_grade = p4.grades_from_report[user]['submission']
+            grade = 0 if raw_grade == grp.NULL_GRADE else raw_grade
+            per_user.append(grade)
+            per_group.append(p4.grades[user]['submission'])
+    
+    per_user = np.array(per_user)
+    per_group = np.array(per_group)
+    diff_group_user = per_group - per_user
 
 
-plt.grid(True)
-plt.show()
 
-print(f'{per_user.mean() = :.2f}')
-print(f'{per_user.std() = :.2f}')
-print(f'{per_group.mean() = :.2f}')
-print(f'{per_group.std() = :.2f}')
-print(f'{diff_group_user.mean() = :.2f}')
-print(f'{diff_group_user.std() = :.2f}')
-
-#eg = Course.from_csv(23252)
-#html_file = Path(DATA_FOLDER, 'eg-shaft-support.htm')
-#csv_file = Path(DATA_FOLDER, 'eg-shatft-support.csv')
-
+if False:
+    
+    PLOT_DIFF = True
+    
+    bins_diff = np.linspace(-GRADE_MAX/5, GRADE_MAX/5, 21)
+    bins_grade = np.linspace(GRADE_MIN, GRADE_MAX, 21)
+    bins_grade[-1] += 1e-6  # To include 100 in the last bin
+    
+    hist_users, _ = np.histogram(per_user, bins=bins_grade, density=False)
+    hist_groups, _ = np.histogram(per_group, bins=bins_grade, density=False)
+    hist_diff, _ = np.histogram(diff_group_user, bins=bins_diff, density=False)
+    
+    bin_diff_width = bins_diff[1] - bins_diff[0]
+    bin_diff_centers = bins_diff[:-1] + bin_diff_width / 2
+    
+    bin_grade_width = bins_grade[1] - bins_grade[0]
+    bin_grade_centers = bins_grade[:-1] + bin_grade_width / 2
+    
+    # Ancho de las barras para cada conjunto (dividir el bin en 2)
+    bar_diff_width = bin_diff_width / 2
+    bar_grade_width = bin_grade_width / 2
+    
+    # Graficar: barras pegadas una a otra para cada bin
+    plt.ylabel('Frequency')
+    if PLOT_DIFF:
+        plt.bar(bin_diff_centers - bar_diff_width / 2,
+                hist_diff, width=bar_diff_width, alpha=0.7)
+        plt.xlabel('Group grade - Submission grade')
+        plt.title('Histogram of differences between group and submission grades')
+    else:
+        plt.bar(bin_grade_centers - bar_grade_width / 2,
+                hist_users, width=bar_grade_width, alpha=0.7, label='Per user')
+        plt.bar(bin_grade_centers + bar_grade_width / 2, 
+                hist_groups, width=bar_grade_width, alpha=0.7, label='Per group')
+        plt.xlabel('Submission grade')
+        plt.title('Histograms of submission grades per user and per group')
+        plt.legend()
+        
+    
+    
+    plt.grid(True)
+    plt.show()
+    
+    print(f'{per_user.mean() = :.2f}')
+    print(f'{per_user.std() = :.2f}')
+    print(f'{per_group.mean() = :.2f}')
+    print(f'{per_group.std() = :.2f}')
+    print(f'{diff_group_user.mean() = :.2f}')
+    print(f'{diff_group_user.std() = :.2f}')
+    
+    #eg = Course.from_csv(23252)
+    #html_file = Path(DATA_FOLDER, 'eg-shaft-support.htm')
+    #csv_file = Path(DATA_FOLDER, 'eg-shatft-support.csv')
+    
