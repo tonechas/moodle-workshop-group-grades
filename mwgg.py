@@ -502,9 +502,12 @@ class Workshop():
             grades[id_number]['overall'] = submission + assessment
         return grades
     
+    
     def display_grades(self):
-        print('ID      Name                          Submission  Assessment  Overall')
-        print('---------------------------------------------------------------------')
+        print('ID      Name                        '
+              '  Submission  Assessment  Overall\n'
+              '-----------------------------------'
+              '----------------------------------')
         for user in sorted(p4.course.users):
             id_number = user.id_number
             if id_number in self.grades:
@@ -519,21 +522,57 @@ class Workshop():
 
 
     def save_grades(self, filename):
+        """
+        Export computed workshop grades to a CSV file.
+
+        This method writes a table of final grades to the specified 
+        CSV file. For each user enrolled in the course, it includes 
+        their ID number, full name, submission grade (shared within 
+        their group), individual assessment grade, and overall grade 
+        (the weighted sum of submission and assessment).
+
+        Grades are written in a sorted order based on user last
+        names. Users without recorded submission or assessment
+        grades are excluded from the output.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the CSV file where the grades will be saved.
         
+        Output Format
+        -------------
+        The CSV file includes the following columns:
+        - ID number
+        - Name (First Last)
+        - Submission (float, two decimal places)
+        - Assessment (float, two decimal places)
+        - Overall (float, two decimal places)
+        """
         with open(filename, 'w', newline='', encoding='utf-8') as csvfile:
             writer = csv.writer(csvfile, delimiter=',')
-            writer.writerow(['Name', 'Submission', 'Assessment', 'Overall'])
-            
-            for user in sorted(p4.course.users):
-                full_name = user.full_name
-                if full_name in self.grades.keys():
-                    submission = self.grades[full_name]['submission']
-                    assessment = self.grades_from_report[full_name]['grading']
+            writer.writerow([
+                'ID number',
+                'Name',
+                'Submission',
+                'Assessment',
+                'Overall',
+            ])
+            for user in sorted(self.course.users):
+                id_number = user.id_number
+                if id_number in self.grades.keys():
+                    submission = self.grades[id_number]['submission']
+                    assessment = self.grades_from_report[id_number]['grading']
                     if assessment == grp.NULL_GRADE:
                         assessment = 0
-                    overall = self.grades[full_name]['overall']
-                    writer.writerow([full_name, f'{submission:4.2f}',
-                                     f'{assessment:4.2f}', f'{overall:4.2f}'])
+                    overall = self.grades[id_number]['overall']
+                    writer.writerow([
+                        id_number,
+                        user.full_name,
+                        f'{submission:4.2f}',
+                        f'{assessment:4.2f}',
+                        f'{overall:4.2f}',
+                    ])
 
 
     # !!! Add sanity tests
@@ -575,12 +614,12 @@ geo2 = Course.from_csv(22862)
 p4 = Workshop(html_file)
 
 p4.display_grades()
+p4.save_grades(csv_file)
 
     #%%
 
 if False:
 
-    p4.save_grades(csv_file)
     
     
     # !!! Obtener el user ID y utilizarlo como clave
