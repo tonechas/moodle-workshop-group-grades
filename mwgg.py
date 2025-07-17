@@ -1,55 +1,17 @@
 import csv
 import doctest
 from pathlib import Path
-import unicodedata
 
 from bs4 import BeautifulSoup
 import matplotlib.pyplot as plt
 import numpy as np
 
 import grades_report_parser as grp
-
-# !!! Fix this
-DATA_FOLDER = r'C:\Users\Tonechas\Dropbox\OngoingWork\GroupsInWorkshops'
+from util import DataFolderManager, normalize
 
 
 GRADE_MIN = 0
 GRADE_MAX = 100
-
-
-def normalize(text):
-    """
-    Remove accents from a string and convert to lowercase.
-
-    Helper function for sorting strings in a way that ignores
-    diacritical marks (accents) and case.
-
-    Parameters
-    ----------
-    text : str
-        The input string to normalize.
-
-    Returns
-    -------
-    str
-        A normalized version of the input string without accents, 
-        converted to lowercase.
-
-    Examples
-    --------
-    >>> normalize('Ángel Fernández Peña')
-    'angel fernandez pena'
-    
-    >>> names = ['ángel', 'Marta', 'Óscar', 'María', 'Elena', 'ana']
-    >>> sorted(names)  # Unicode order (not what we want)
-    ['Elena', 'Marta', 'María', 'ana', 'Óscar', 'ángel']
-    >>> sorted(names, key=normalize)  # Normalized order
-    ['ana', 'ángel', 'Elena', 'María', 'Marta', 'Óscar']
-    """
-    return ''.join(
-        c for c in unicodedata.normalize('NFKD', text)
-        if not unicodedata.combining(c)
-    ).lower()
 
 
 class User():
@@ -406,6 +368,10 @@ class Workshop():
         self.course = self.get_course()
         self.group_ids = grp.extract_group_ids(self.soup)
         self.grades_from_report = grp.extract_grades(self.soup)
+        # Since not all enrolled users necessarily participate in the
+        # workshop, the number of graded users may differ from the
+        # total number of users:
+        # len(self.grades) != len(self.course.users)
         self.grades = self.compute_grades()
 
 
@@ -574,6 +540,11 @@ class Workshop():
                         f'{overall:4.2f}',
                     ])
 
+# !!! Cambiar instrucciones en README.md
+
+# !!! "First name","Last name","ID number","Email address",Groups
+
+#  !!! ¿?Qué pasa con los que no tienen ID number?
 
     # !!! Add sanity tests
     # def get_participants(self):
@@ -604,9 +575,21 @@ class Workshop():
 
 
 if __name__ == '__main__':
+
+    dfm = DataFolderManager(
+        config_file="config.ini",
+        section="paths",
+        key="data_folder",
+    )
+
+    # !!! Probar a cambiar este directorio en config.ini
+    #DATA_FOLDER = r'C:\Users\Tonechas\Dropbox\OngoingWork\GroupsInWorkshops'
+    DATA_FOLDER = dfm.get_data_folder()
+    print(f"Data folder selected: {DATA_FOLDER}")
+    
     doctest.testmod()
 
-    
+
 html_file = Path(DATA_FOLDER, 'geo2-practica4.htm')
 csv_file = Path(DATA_FOLDER, 'geo2-practica4.csv')
     
@@ -618,23 +601,21 @@ p4.save_grades(csv_file)
 
     #%%
 
+# !!! Usar conjuntos en los sanity checks
+
 if False:
 
-    
-    
-    # !!! Obtener el user ID y utilizarlo como clave
-    # !!!
-    len(p4.grades) == len(p4.course.users)
+# !!! Convertir esto en un método
     
     per_user = []
     per_group = []
     
-    for user in p4.grades_from_report:
-        if p4.grades_from_report[user]['submitted']:
-            raw_grade = p4.grades_from_report[user]['submission']
+    for id_number, mapping in p4.grades_from_report.items():
+        if mapping[id_number]['submitted']:
+            raw_grade = mapping[id_number]['submission']
             grade = 0 if raw_grade == grp.NULL_GRADE else raw_grade
             per_user.append(grade)
-            per_group.append(p4.grades[user]['submission'])
+            per_group.append(p4.grades[id_number]['submission'])
     
     per_user = np.array(per_user)
     per_group = np.array(per_group)
