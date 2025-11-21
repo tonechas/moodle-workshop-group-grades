@@ -44,13 +44,13 @@ This file can be generated as follows:
 
 Notice that you have to replace `<course_id>` by the ID of your course, for example `12345`. The course data file must be organized as shown below:
 ```text
-"First name",Surname,"Email address",Groups
-Peter,Smith,pete@gmail.com,"A, G1_1"
-Jane,Bloggs,jenny@yahoo.com,"B, G1_1"
-Alice,Johnson,alicej@hotmail.com,"B, G1_2"
-John,Doe,johny@example.com,G2_2
-Michael,Harris,mike2007@fakemail.net,G3_1
-Emily,Carter,milly@test.com,"A, G3_2"
+"First name","Last name","ID number","Email address",Groups
+Peter,Smith,pete@gmail.com,300000,"A, G1_1"
+Jane,Bloggs,jenny@yahoo.com,300001,"B, G1_1"
+Alice,Johnson,alicej@hotmail.com,112233,"B, G1_2"
+John,Doe,johny@example.com,444555,G2_2
+Michael,Harris,mike2007@fakemail.net,100100,G3_1
+Emily,Carter,milly@test.com,670670,"A, G3_2"
 ```
 
 ### `<workshop_id>.htm`
@@ -66,17 +66,17 @@ This is the HTML code of the Workshop grades report. Note that `<workshop_id>` s
 
 This file is the output produced by the script execution. The file is structured into four columns:
 ```text
-Email address,Submission,Assessment,Overall
-pete@gmail.com,72.45,91.00,76.16
-jenny@yahoo.com,72.45,86.50,75.26
-alicej@hotmail.com,69.37,72.35,60.97
-johny@example.com,69.37,78.20,71.14
-mike2007@fakemail.net,81.26,92.30,83.47
-milly@test.com,81.26,94.15,83.84
+ID number,Name,Submission,Assessment,Overall
+300000,pete@gmail.com,72.45,91.00,76.16
+300001,jenny@yahoo.com,72.45,86.50,75.26
+112233,alicej@hotmail.com,69.37,72.35,60.97
+444555,johny@example.com,69.37,78.20,71.14
+100100,mike2007@fakemail.net,81.26,92.30,83.47
+670670,milly@test.com,81.26,94.15,83.84
 ```
 Then you have to complete the following steps:
 1. In your Moodle course, go to **Grades** → **Import** and choose **CSV file**.
 2. Upload your `<workshop_id>.csv` file.
-3. In **Identify user by**, select the field that matches your file (e.g., **Email address**).
+3. In **Identify user by**, select the field that matches your file (e.g., **ID number**).
 4. Match each column in your file to an existing grade item or choose to **create a new grade item**.
 5. Click **Upload grades**. Moodle will confirm how many grades were updated.
