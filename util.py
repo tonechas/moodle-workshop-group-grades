@@ -40,7 +40,7 @@ def normalize(text):
 
 
 
-class DataFolderManager:
+class DataFolderManager: # !!! Docstring
     def __init__(self, config_file, section, key):
         self.config_file = Path(config_file)
         self.section = section
@@ -58,7 +58,7 @@ class DataFolderManager:
                 if folder.exists():
                     return folder
             except KeyError:
-                pass
+                pass # !!! Improve this
         return self.default_path
 
     def save_to_config(self, path):
@@ -77,6 +77,7 @@ class DataFolderManager:
             title="Select Data Folder", initialdir=initial_dir
         )
         root.destroy()
+        # !!! None shouldn't be an option
         return Path(folder_selected) if folder_selected else None
 
     def get_data_folder(self):

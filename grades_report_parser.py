@@ -383,6 +383,7 @@ def extract_grades(soup):
       an assignment.
     - Grades received by each participant from peers.
     - Grades given by each participant to peers.
+    - The submission grade assigned to each participant by Moodle.
     - The grading grade assigned to each participant by Moodle.
 
     Also performs a consistency check to ensure that received and
@@ -396,8 +397,8 @@ def extract_grades(soup):
     Returns
     -------
     dict
-        A dictionary where keys are participant IDs (int), and
-        values are dictionaries with the following structure:
+        A dictionary where keys are participant full names (str),
+        and values are dictionaries with the following structure:
         {
             'submitted': bool,
             'received': {grader_id: grade, ...},
@@ -409,49 +410,81 @@ def extract_grades(soup):
     Raises
     ------
     ValueError
-        If a mismatch is found between received and given grades.
+        If a mismatch is found between received and given grades
+        or duplicated full names are detected.
     """
-    grades = dict()
+    view_id_to_grades = dict()
+    alt_to_grades = dict()
+    view_id_to_alt = dict()
     for row in extract_rows(soup):
+        # Extract participant view_id (from link) and full name (`alt`)
         td_participant = row.find(
             'td',
             class_=lambda x: x in PARTICIPANT_CELLS,
         )
         if td_participant:
-            link = td_participant.find('a', class_='d-inline-block aabtn')
-            match = re.search(r'id=(\d+)', link['href'])
-            participant_id = int(match.group(1)) if match else None
-            grades[participant_id] = {
+            try:
+                link = td_participant.find('a', class_='d-inline-block aabtn')
+                match_id = re.search(r'id=(\d+)', link['href'])
+                participant_view_id = int(match_id.group(1))
+                #img = td_participant.find('img')
+                #if img and img.get("alt"):
+                #    participant_alt = img["alt"].strip()
+                #else:
+                spans = td_participant.find_all("span")
+                #if spans:
+                participant_alt = spans[-1].get_text(strip=True)
+                view_id_to_alt[participant_view_id] = participant_alt
+            except BaseException as ex:
+                print(ex)
+                print('Skipping malformed participant cell')
+            view_id_to_grades[participant_view_id] = {
                 'submitted': False,
                 'received': dict(),
                 'given': dict(),
                 'submission': NULL_GRADE,
                 'grading': NULL_GRADE,
-            }        
+            }
+
+        # Set 'submitted' to True is a submission is found 
         td_submission = row.find('td', class_=lambda x: x in SUBMISSION_CELLS)
         if td_submission:
             title_tag = td_submission.find('a', class_='title')
             if title_tag:
-                grades[participant_id]['submitted'] = True        
+                view_id_to_grades[participant_view_id]['submitted'] = True
+
+        # Extract received grades
         td_received = row.find(
             'td',
             class_=lambda x: x in RECEIVED_GRADE_CELLS,
         )
         if td_received:
-            link = td_received.find('a', class_='d-inline-block aabtn')
-            match = re.search(r'id=(\d+)', link['href'])
-            grader_id = int(match.group(1)) if match else None
-            grade_tag = td_received.find('span', class_='grade')
-            grade = get_grade(grade_tag)
-            grades[participant_id]['received'][grader_id] = grade
+            try:
+                link = td_received.find('a', class_='d-inline-block aabtn')
+                match_id = re.search(r'id=(\d+)', link['href'])
+                grader_view_id = int(match_id.group(1)) if match_id else None
+                grade_tag = td_received.find('span', class_='grade')
+                grade = get_grade(grade_tag)
+                view_id_to_grades[participant_view_id]['received'][grader_view_id] = grade
+            except BaseException as ex:
+                print(ex)
+                print('Skipping malformed receivedgrade cell')
+                
+        # Extract given grades
         td_given = row.find('td', class_=lambda x: x in GIVEN_GRADE_CELLS)
         if td_given:
-            link = td_given.find('a', class_='d-inline-block aabtn')
-            match = re.search(r'id=(\d+)', link['href'])
-            gradee_id = int(match.group(1)) if match else None
-            grade_tag = td_given.find('span', class_='grade')
-            grade = get_grade(grade_tag)
-            grades[participant_id]['given'][gradee_id] = grade
+            try:
+                link = td_given.find('a', class_='d-inline-block aabtn')
+                match_id = re.search(r'id=(\d+)', link['href'])
+                gradee_view_id = int(match_id.group(1))
+                grade_tag = td_given.find('span', class_='grade')
+                grade = get_grade(grade_tag)
+                view_id_to_grades[participant_view_id]['given'][gradee_view_id] = grade
+            except BaseException as ex:
+                print(ex)
+                print('Skipping malformed receivedgrade cell')
+
+        # Extract submission grade
         td_submission_grade = row.find(
             'td',
             class_=lambda x: x in SUBMISSION_GRADE_CELLS,
@@ -459,7 +492,9 @@ def extract_grades(soup):
         if td_submission_grade:
             if td_submission_grade.get_text() != NULL_GRADE:
                 grade = get_grade(td_submission_grade)
-                grades[participant_id]['submission'] = grade
+                view_id_to_grades[participant_view_id]['submission'] = grade
+
+        # Extract submission grade
         td_grading_grade = row.find(
             'td',
             class_=lambda x: x in GRADING_GRADE_CELLS,
@@ -467,15 +502,36 @@ def extract_grades(soup):
         if td_grading_grade:
             if td_grading_grade.get_text() != NULL_GRADE:
                 grade = get_grade(td_grading_grade)
-                grades[participant_id]['grading'] = grade
-    # Sanity check
-    for gradee in grades:
-        for grader in grades[gradee]['received']:
-            gradee_from_grader = grades[gradee]['received'][grader]
-            grader_to_gradee = grades[grader]['given'][gradee]
+                view_id_to_grades[participant_view_id]['grading'] = grade
+
+    # Sanity checks
+    for gradee in view_id_to_grades:
+        for grader in view_id_to_grades[gradee]['received']:
+            gradee_from_grader = view_id_to_grades[gradee]['received'][grader]
+            grader_to_gradee = view_id_to_grades[grader]['given'][gradee]
             if gradee_from_grader != grader_to_gradee:
                 raise ValueError('Error parsing grades')
-    return grades
+    if len(view_id_to_alt) > len(set(view_id_to_alt.keys())):
+        raise ValueError('Different users have identical full names')
+        
+
+    # Change key of dictionary
+    for participant_view_id in view_id_to_grades:
+        alt = view_id_to_alt[participant_view_id]
+        received = dict()
+        for grader_view_id, grade in view_id_to_grades[participant_view_id]['received'].items():
+            received[view_id_to_alt[grader_view_id]] = grade
+        given = dict()
+        for gradee_view_id, grade in view_id_to_grades[participant_view_id]['given'].items():
+            given[view_id_to_alt[gradee_view_id]] = grade
+        alt_to_grades[alt] = {
+            'submitted': view_id_to_grades[participant_view_id]['submitted'],
+            'received': received,
+            'given': given,
+            'submission': view_id_to_grades[participant_view_id]['submission'],
+            'grading': view_id_to_grades[participant_view_id]['grading'],
+        }
+    return alt_to_grades
 
 
 if __name__ == '__main__':
