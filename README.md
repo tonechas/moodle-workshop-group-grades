@@ -45,12 +45,12 @@ This file can be generated as follows:
 Notice that you have to replace `<course_id>` by the ID of your course, for example `12345`. The course data file must be organized as shown below:
 ```text
 "First name","Last name","ID number","Email address",Groups
-Peter,Smith,pete@gmail.com,300000,"A, G1_1"
-Jane,Bloggs,jenny@yahoo.com,300001,"B, G1_1"
-Alice,Johnson,alicej@hotmail.com,112233,"B, G1_2"
-John,Doe,johny@example.com,444555,G2_2
-Michael,Harris,mike2007@fakemail.net,100100,G3_1
-Emily,Carter,milly@test.com,670670,"A, G3_2"
+Peter,Smith,300000,pete@gmail.com,"A, G1_1"
+Jane,Bloggs,300001,jenny@yahoo.com,"B, G1_1"
+Alice,Johnson,112233,alicej@hotmail.com,"B, G1_2"
+John,Doe,444555,johny@example.com,G2_2
+Michael,Harris,100100,mike2007@fakemail.net,G3_1
+Emily,Carter,670670,milly@test.com,"A, G3_2"
 ```
 
 ### `<workshop_id>.htm`
@@ -67,13 +67,15 @@ This is the HTML code of the Workshop grades report. Note that `<workshop_id>` s
 This file is the output produced by the script execution. The file is structured into four columns:
 ```text
 ID number,Name,Submission,Assessment,Overall
-300000,pete@gmail.com,72.45,91.00,76.16
-300001,jenny@yahoo.com,72.45,86.50,75.26
-112233,alicej@hotmail.com,69.37,72.35,60.97
-444555,johny@example.com,69.37,78.20,71.14
-100100,mike2007@fakemail.net,81.26,92.30,83.47
-670670,milly@test.com,81.26,94.15,83.84
+300000,Peter Smith,62.45,19.15,81.60
+300001,Jane Bloggs,73.45,16.50,89.95
+112233,Alice Johnson,49.37,17.35,66.72
+444555,John Doe,38.57,15.21,53.78
+100100,Michael Harris,34.26,12.30,46.56
+670670,Emily Carter,61.50,18.25,79.75
 ```
+In the sample output data file above Submission ranges from 0 to 80, and Assessment ranges from 0 to 20. Overall is simply the sum of Submission and Assessment.
+
 Then you have to complete the following steps:
 1. In your Moodle course, go to **Grades** → **Import** and choose **CSV file**.
 2. Upload your `<workshop_id>.csv` file.
