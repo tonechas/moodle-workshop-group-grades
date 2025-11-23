@@ -351,26 +351,26 @@ def extract_rows(soup):
             rows.append(tr)
     return rows
 
-# @staticmethod
-# def extract_participants(soup): #!!! Not used
-#     """
-#     Extract the participant names from the grades report.
 
-#     Iterates over the table rows and retrieves the participant's
-#     full name from the appropriate `<td>` element, based on known
-#     CSS classes.
+def extract_fullnames(soup):
+    """
+    Extract the participant full names from the workshop report.
 
-#     Returns
-#     -------
-#     list of str
-#         A list of participant names as they appear in the report.
-#     """
-#     participants = []
-#     for row in self.extract_rows():
-#         td = row.find('td',class_=lambda x: x in PARTICIPANT_CELLS)
-#         if td:
-#             participants.append(td.contents[-1].text)
-#     return participants
+    Iterates over the table rows and retrieves the participant's
+    full name from the appropriate `<td>` element, based on known
+    CSS classes.
+
+    Returns
+    -------
+    list of str
+        A list of participant names as they appear in the report.
+    """
+    participants = []
+    for row in extract_rows(soup):
+        td = row.find('td',class_=lambda x: x in PARTICIPANT_CELLS)
+        if td:
+            participants.append(td.contents[-1].text)
+    return participants
 
 
 def extract_grades(soup):
@@ -427,24 +427,20 @@ def extract_grades(soup):
                 link = td_participant.find('a', class_='d-inline-block aabtn')
                 match_id = re.search(r'id=(\d+)', link['href'])
                 participant_view_id = int(match_id.group(1))
-                #img = td_participant.find('img')
-                #if img and img.get("alt"):
-                #    participant_alt = img["alt"].strip()
-                #else:
                 spans = td_participant.find_all("span")
-                #if spans:
                 participant_alt = spans[-1].get_text(strip=True)
                 view_id_to_alt[participant_view_id] = participant_alt
+                view_id_to_grades[participant_view_id] = {
+                    'submitted': False,
+                    'received': dict(),
+                    'given': dict(),
+                    'submission': NULL_GRADE,
+                    'grading': NULL_GRADE,
+                }
             except BaseException as ex:
                 print(ex)
                 print('Skipping malformed participant cell')
-            view_id_to_grades[participant_view_id] = {
-                'submitted': False,
-                'received': dict(),
-                'given': dict(),
-                'submission': NULL_GRADE,
-                'grading': NULL_GRADE,
-            }
+                continue
 
         # Set 'submitted' to True is a submission is found 
         td_submission = row.find('td', class_=lambda x: x in SUBMISSION_CELLS)
@@ -512,9 +508,8 @@ def extract_grades(soup):
             if gradee_from_grader != grader_to_gradee:
                 raise ValueError('Error parsing grades')
     if len(view_id_to_alt) > len(set(view_id_to_alt.keys())):
-        raise ValueError('Different users have identical full names')
+        raise ValueError('ERROR: Different users have identical full names')
         
-
     # Change key of dictionary
     for participant_view_id in view_id_to_grades:
         alt = view_id_to_alt[participant_view_id]
