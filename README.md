@@ -53,7 +53,7 @@ Michael,Harris,100100,mike2007@fakemail.net,G3_1
 Emily,Carter,670670,milly@test.com,"A, G3_2"
 ```
 
-### `<workshop_id>.htm`
+### `<workshop_id>.html`
 
 This is the HTML code of the Workshop grades report. Note that `<workshop_id>` should be replaced by an identifier, for example `HISTORY204D-essay` or `CS101-project`. The report looks like this:
 
@@ -82,3 +82,7 @@ Then you have to complete the following steps:
 3. In **Identify user by**, select the field that matches your file (e.g., **ID number**).
 4. Match each column in your file to an existing grade item or choose to **create a new grade item**.
 5. Click **Upload grades**. Moodle will confirm how many grades were updated.
+
+## Project Background
+
+This repository has been developed to support the research presented in the article _"Extending Moodle's Workshop Functionality to Support Group Submissions and Evaluations”_, which is currently under review for publication in the *Journal of College Science Teaching*.
