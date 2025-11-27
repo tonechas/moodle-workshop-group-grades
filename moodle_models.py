@@ -20,7 +20,7 @@ class User():
         The user's last name.
     id_number : int
         The user's ID number in the Moodle database.
-    group_ids : str, list of str, or None, optional
+    group_ids : str, list of str, tuple or None, optional
         An ID or a list of IDs of the group(s) to which the user belongs.
         Defaults to None if not provided.
 
@@ -96,6 +96,8 @@ class User():
             self._group_ids = (ids,)
         elif isinstance(ids, list):
             self._group_ids = tuple(ids)
+        elif isinstance(ids, tuple):
+            self._group_ids = ids
         else:
             raise ValueError('Invalid groups IDs')
 
@@ -113,7 +115,10 @@ class User():
     
         Users are compared by their last names and first names in a
         case-insensitive and accent-insensitive manner using the
-        `normalize()` helper function.
+        `normalize()` helper function. If the normalized last name
+        and first name are identical for both users, the comparison
+        uses `id_number` as a tiebreaker to guarantee consistent
+        ordering.
     
         Parameters
         ----------
@@ -123,23 +128,36 @@ class User():
         Returns
         -------
         bool
-            True if the current user should come before `other`
-            in sorted order, False otherwise.
+            `True` if the current user should come before `other`
+            in sorted order, `False` otherwise.
     
         Examples
         --------
-        >>> user1 = User('Robert', 'Johnson', 123456, 'bobby@example.com')
-        >>> user2 = User('Alice', 'Smith', 234567, 'alice2008@fakemail.net')
+        >>> user1 = User('Robert', 'Johnson', 100001, 'bobby@example.com')
+        >>> user2 = User('Alice', 'Smith', 200002, 'alice2008@fakemail.net')
         >>> user1 < user2
         True
         
-        >>> user3 = User('Mario', 'Pérez', 345678, 'mario@example.com')
-        >>> user4 = User('María', 'Pérez', 456789, 'maria@fakemail.net')
+        >>> user3 = User('Mario', 'Pérez', 333333, 'mario@example.com')
+        >>> user4 = User('María', 'Pérez', 444444, 'maria@fakemail.net')
         >>> user3 < user4
         False
+        
+        >>> user5 = User('John', 'Doe', 900005, 'johny@example.com')
+        >>> user6 = User('John', 'Doe', 900006, 'j.doe@fakemail.net')
+        >>> user5 < user6
+        True
         """
-        tup_self = (normalize(self.last_name), normalize(self.first_name))
-        tup_other = (normalize(other.last_name), normalize(other.first_name))
+        tup_self = (
+            normalize(self.last_name),
+            normalize(self.first_name),
+            self.id_number,
+        )
+        tup_other = (
+            normalize(other.last_name),
+            normalize(other.first_name),
+            other.id_number,
+        )
         return tup_self < tup_other
 
 
