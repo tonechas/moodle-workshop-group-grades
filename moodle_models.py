@@ -168,20 +168,22 @@ class Group():
     Parameters
     ----------
     group_id : str
-        A unique identifier for the group, such as 'A', 'C3.2'
+        The unique identifier for the group, such as 'A', 'C3.2'
         or 'Group 2_1'.
-    members : list of User, or None, optional
-        A list of User instances.
+    members : collection of User, or None, optional
+        A collection of User instances.
         Defaults to None if not provided.
+        If `None`, the group is initialized with no members.
 
     Attributes
     ----------
     group_id : str
-        The identifier for the group.
+        The human-readable name of the group.
     members : tuple of User
         The users who are members of the group. Those users whose
-        groups_ids attribute does not contain the group_id won't
-        be included in this tuple.
+        `.groups_ids attribute does not contain the `self.group_id`
+        won't be included in this tuple. Regardless of the input
+        type, the value is stored internally as a tuple.
 
     Examples
     --------
@@ -194,18 +196,19 @@ class Group():
     ()
     
     >>> user1 = User('Chris', 'Doe', 111111, 'chris@example.com', 'A')
+    >>> user2 = User('Sally', 'Smith', 222222, 'sally@nomail.net', ['A', 'G3'])
+
     >>> group2 = Group('A', [user1])
     >>> group2.members
     (User('Chris Doe', 111111),)
     
-    >>> user2 = User('Sally', 'Smith', 222222, 'sally@nomail.net', ['A', 'G3'])
-    >>> group3 = Group('G3', [user1, user2])
+    >>> group3 = Group('A', [user1, user2])
     >>> group3.members
-    (User('Sally Smith', 222222),)
-
-    >>> group4 = Group('A', [user1, user2])
-    >>> group4.members
     (User('Chris Doe', 111111), User('Sally Smith', 222222))
+
+    >>> group4 = Group('G3', [user1, user2])
+    >>> group4.members
+    (User('Sally Smith', 222222),)
     """
     def __init__(self, group_id, members=None):
         self.group_id = group_id
