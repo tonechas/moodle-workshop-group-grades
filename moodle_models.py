@@ -49,7 +49,7 @@ class User():
     >>> user1.email
     'johny@nomail.com'
     >>> user1.group_ids
-    ('G1', 'A')
+    ('A', 'G1')
     >>> print(user1)
     User('John Doe', 123456)
     
@@ -80,7 +80,7 @@ class User():
         self.full_name = f'{self.first_name} {self.last_name}'
         self.id_number = id_number
         self.email = email
-        self.group_ids = group_ids
+        self.group_ids = group_ids  # !!! Sort alphabetically
     
     
     @property
@@ -90,16 +90,15 @@ class User():
 
     @group_ids.setter
     def group_ids(self, ids):
-        if ids is None:
+        if ids is None or ids == '':
             self._group_ids = ()
         elif isinstance(ids, str):
             self._group_ids = (ids,)
-        elif isinstance(ids, list):
-            self._group_ids = tuple(ids)
-        elif isinstance(ids, tuple):
-            self._group_ids = ids
+        elif isinstance(ids, (list, tuple)):
+            valid_ids = set(str(id_) for id_ in ids if id_ not in (['', None]))
+            self._group_ids = tuple(sorted(valid_ids))
         else:
-            raise ValueError('Invalid groups IDs')
+            raise ValueError('Invalid group IDs')
 
 
     def __repr__(self):
@@ -169,7 +168,7 @@ class Group():
     ----------
     group_id : str
         The unique identifier for the group, such as 'A', 'C3.2'
-        or 'Group 2_1'.
+        or 'Group 2_1'. Commas are not permitted.
     members : collection of User, or None, optional
         A collection of User instances.
         Defaults to None if not provided.
@@ -272,25 +271,29 @@ class Course():
     >>> header = '"First name","Last name","ID number","Email address",Groups'
     >>> with open(csv_file, 'w') as f:
     ...     print(header, file=f)
-    ...     print('Sally,Smith,111111,sally@gmail.com,"A, G1_2"', file=f)
-    ...     print('Joe,Bloggs,222222,joe@yahoo.com,"B, G1_1"', file=f)
-    ...     print('Jane,Roe,333333,jenny@hotmail.com,"B, G1_2"', file=f)
-    ...     print('John,Doe,444444,johny@example.com,"A, G1_1"', file=f)
-    ...     print('Mary,Stewart,555555', file=f)
+    ...     print('Sally,Smith,111111,sally@gmail.com,"A, G1"', file=f)
+    ...     print('Joe,Bloggs,222222,joe@yahoo.com,"A, G2"', file=f)
+    ...     print('Jane,Roe,333333,jenny@hotmail.com,"B, G1"', file=f)
+    ...     print('John,Doe,444444,johny@example.com,"B, G2"', file=f)
+    ...     print('Robert,Johnson,555555,bob@fakemail.com,""', file=f)
+    ...     print('Alfred,666666,freddy@nomail.com,"A, B"', file=f)
+    ...     print('Mary,Stewart,777777', file=f)
     ...
     >>> course = Course.from_participants_csv(course_id, '.')
-    Incomplete user info: ['Mary', 'Stewart', '555555']
+    Incomplete user info: ['Alfred', '666666', 'freddy@nomail.com', 'A, B']
+    Incomplete user info: ['Mary', 'Stewart', '777777']
     >>> for user in course.users:
     ...     print(user)
     ...
     User('Joe Bloggs', 222222)
     User('John Doe', 444444)
+    User('Robert Johnson', 555555)
     User('Jane Roe', 333333)
     User('Sally Smith', 111111)
     >>> type(course.users)
     <class 'tuple'>
     >>> course.groups
-    (Group('A'), Group('B'), Group('G1_1'), Group('G1_2'))
+    (Group('A'), Group('B'), Group('G1'), Group('G2'))
     
     >>> user1 = User('Sally', 'Smith', 111111, 'sally@gmail.com', ['G1', 'G3'])
     >>> user2 = User('Joe', 'Bloggs', 222222, 'joe@yahoo.com', ['G1'])
@@ -302,8 +305,15 @@ class Course():
     >>> group3 = Group('G3', [user1, user4])
     >>> users = [user1, user2, user3, user4]
     >>> groups = [group1, group2, group3]
-    >>> course = Course(12345, users, groups)
     """
+#    >>> course = Course(12345, users, groups)
+    n_columns = 5
+    idx_first_name = 0
+    idx_last_name = 1
+    idx_id_number = 2
+    idx_email = 3
+    idx_group_ids = 4
+    
     def __init__(self, course_id, users, groups):
         self.course_id = course_id
         self.users = tuple(sorted(users))
@@ -332,27 +342,21 @@ class Course():
             reader = csv.reader(file)
             next(reader)  # Skip header row
             for line in reader:
-                if len(line) < 4:
+                if len(line) < cls.n_columns:
                     print(f'Incomplete user info: {line}')
                     continue  # Skip malformed rows
-                first_name = line[0].strip()
-#                print(first_name, end=' ')
-                last_name = line[1].strip()
-#                print(last_name, end=' ')
+                first_name = line[cls.idx_first_name].strip()
+                last_name = line[cls.idx_last_name].strip()
                 try:
-                    id_number = int(line[2].strip())
+                    id_number = int(line[cls.idx_id_number].strip())
                 except ValueError:
                     id_number = None
-#                print(id_number, end=' ')
-                email = line[3].strip()
-#                print(email, end=' ')
-                try:
-                    raw_ids = line[4].split(',')
-                    group_ids = [group_id.strip() for group_id in raw_ids]
-                except IndexError:
-                    # User does not belong to any group
-                    group_ids = []
-#                print(', '.join(g for g in group_ids))
+                email = line[cls.idx_email].strip()
+                valid_ids = set()
+                for raw_id in line[cls.idx_group_ids].split(','):
+                    valid_ids.add(raw_id.strip())
+                valid_ids.discard('')
+                group_ids = sorted(valid_ids, key=normalize)
                 user = User(first_name, last_name, id_number, email, group_ids)
                 users.append(user)
                 for group_id in group_ids:
