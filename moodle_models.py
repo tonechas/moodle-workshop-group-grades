@@ -258,24 +258,27 @@ class Course():
 
     Class Methods
     -------------
-    from_partcipants_csv(course_id)
+    from_participants_csv(course_id)
         Constructs a Course instance from a Moodle CSV file named
         `courseid_<course_id>_participants.csv`. The file must have
-        four columns: First name, Last name, Email, and Groups. Group
-        names must be comma-separated.
+        five columns: "First name", "Last name", "ID number",
+        "Email address", and "Groups". Group names must be
+        comma-separated.
 
     Examples
     --------
-    >>> path = Path('.', 'courseid_12345_participants.csv')
-    >>> with open(path, 'w') as f:
-    ...     print(r'"First name",Surname,"ID number","Email address",Groups', file=f)
-    ...     print(r'Sally,Smith,111111,sally@gmail.com,"A, G1_2"', file=f)
-    ...     print(r'Joe,Bloggs,222222,joe@yahoo.com,"B, G1_1"', file=f)
-    ...     print(r'Jane,Roe,333333,jenny@hotmail.com,"B, G1_2"', file=f)
-    ...     print(r'John,Doe,444444,johny@example.com,"A, G1_1"', file=f)
-    ...     print(r'Mary,Stewart,555555', file=f)
+    >>> course_id = 12345
+    >>> csv_file = Path('.', f'courseid_{course_id}_participants.csv')
+    >>> header = '"First name","Last name","ID number","Email address",Groups'
+    >>> with open(csv_file, 'w') as f:
+    ...     print(header, file=f)
+    ...     print('Sally,Smith,111111,sally@gmail.com,"A, G1_2"', file=f)
+    ...     print('Joe,Bloggs,222222,joe@yahoo.com,"B, G1_1"', file=f)
+    ...     print('Jane,Roe,333333,jenny@hotmail.com,"B, G1_2"', file=f)
+    ...     print('John,Doe,444444,johny@example.com,"A, G1_1"', file=f)
+    ...     print('Mary,Stewart,555555', file=f)
     ...
-    >>> course = Course.from_participants_csv(12345, '.')
+    >>> course = Course.from_participants_csv(course_id, '.')
     Incomplete user info: ['Mary', 'Stewart', '555555']
     >>> for user in course.users:
     ...     print(user)
@@ -288,6 +291,18 @@ class Course():
     <class 'tuple'>
     >>> course.groups
     (Group('A'), Group('B'), Group('G1_1'), Group('G1_2'))
+    
+    >>> user1 = User('Sally', 'Smith', 111111, 'sally@gmail.com', ['G1', 'G3'])
+    >>> user2 = User('Joe', 'Bloggs', 222222, 'joe@yahoo.com', ['G1'])
+    >>> user3 = User('Jane', 'Roe', 333333, 'jenny@hotmail.com', ['G1'])
+    >>> user4 = User('John', 'Doe', 444444, 'johny@example.com', ['G2', 'G3'])
+    >>> user5 = User('Mary', 'Stewart', 555555, 'mary@nomail.com', ['G2'])
+    >>> group1 = Group('G1', [user1, user2, user3])
+    >>> group2 = Group('G2', [user4, user5])
+    >>> group3 = Group('G3', [user1, user4])
+    >>> users = [user1, user2, user3, user4]
+    >>> groups = [group1, group2, group3]
+    >>> course = Course(12345, users, groups)
     """
     def __init__(self, course_id, users, groups):
         self.course_id = course_id
