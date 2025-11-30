@@ -214,12 +214,22 @@ class Group():
         if members is None:
             self.members = ()
         else:
-            self.members = tuple(
-                member for member in members if group_id in member.group_ids
-            )
+            lst = [user for user in members if group_id in user.group_ids]
+            self.members = tuple(sorted(lst, key=repr))
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.group_id!r})'
+
+    def __lt__(self, other):
+        tup_self = (
+            normalize(self.group_id),
+            self.members,
+        )
+        tup_other = (
+            normalize(other.group_id),
+            other.members,
+        )
+        return tup_self < tup_other
 
 
 class Course():
@@ -236,8 +246,6 @@ class Course():
         The unique identifier assigned to the course by Moodle.
     users : list of User
         A list of User instances enrolled in the course.
-    groups : list of Group
-        A list of Group instances associated with the course.
 
     Attributes
     ----------
@@ -245,15 +253,8 @@ class Course():
         The Moodle-assigned course identifier.
     users : tuple of User
         All users enrolled in the course, sorted by last name.
-    groups : tuple of Group
-        All groups in the course, sorted by group ID.
-
-    Raises
-    ------
-    ValueError
-        Raised when any group includes users who do not declare
-        membership in that group via their `group_ids` attribute,
-        or when it is missing users who do declare such membership.
+    group_ids : tuple of str
+        All group_ids in the course, sorted alphabetically.
 
     Class Methods
     -------------
@@ -267,6 +268,24 @@ class Course():
     Examples
     --------
     >>> course_id = 12345
+    >>> user1 = User('Sally', 'Smith', 111111, 'sally@gmail.com', ['A', 'X'])
+    >>> user2 = User('Joe', 'Bloggs', 222222, 'joe@yahoo.com', ['A', 'Y'])
+    >>> user3 = User('Jane', 'Roe', 333333, 'jenny@hotmail.com', ['B', 'X'])
+    >>> user4 = User('John', 'Doe', 444444, 'johny@example.com', ['B', 'Y'])
+    >>> user5 = User('Mary', 'Stewart', 555555, 'mary@nomail.com', ['C'])
+    >>> user6 = User('Alfred', 'Miller', 666666, 'freddy@nomail.com')
+    >>> users = [user1, user2, user3, user4, user5, user6]
+    >>> course1 = Course(12345, users)
+    >>> for user in course1.users: print(user)
+    User('Joe Bloggs', 222222)
+    User('John Doe', 444444)
+    User('Alfred Miller', 666666)
+    User('Jane Roe', 333333)
+    User('Sally Smith', 111111)
+    User('Mary Stewart', 555555)
+    >>> course1.group_ids
+    ('A', 'B', 'C', 'X', 'Y')
+
     >>> csv_file = Path('.', f'courseid_{course_id}_participants.csv')
     >>> header = '"First name","Last name","ID number","Email address",Groups'
     >>> with open(csv_file, 'w') as f:
@@ -279,10 +298,10 @@ class Course():
     ...     print('Alfred,666666,freddy@nomail.com,"A, B"', file=f)
     ...     print('Mary,Stewart,777777', file=f)
     ...
-    >>> course = Course.from_participants_csv(course_id, '.')
+    >>> course2 = Course.from_participants_csv(course_id, '.')
     Incomplete user info: ['Alfred', '666666', 'freddy@nomail.com', 'A, B']
     Incomplete user info: ['Mary', 'Stewart', '777777']
-    >>> for user in course.users:
+    >>> for user in course2.users:
     ...     print(user)
     ...
     User('Joe Bloggs', 222222)
@@ -290,23 +309,11 @@ class Course():
     User('Robert Johnson', 555555)
     User('Jane Roe', 333333)
     User('Sally Smith', 111111)
-    >>> type(course.users)
+    >>> type(course2.users)
     <class 'tuple'>
-    >>> course.groups
-    (Group('A'), Group('B'), Group('G1'), Group('G2'))
-    
-    >>> user1 = User('Sally', 'Smith', 111111, 'sally@gmail.com', ['G1', 'G3'])
-    >>> user2 = User('Joe', 'Bloggs', 222222, 'joe@yahoo.com', ['G1'])
-    >>> user3 = User('Jane', 'Roe', 333333, 'jenny@hotmail.com', ['G1'])
-    >>> user4 = User('John', 'Doe', 444444, 'johny@example.com', ['G2', 'G3'])
-    >>> user5 = User('Mary', 'Stewart', 555555, 'mary@nomail.com', ['G2'])
-    >>> group1 = Group('G1', [user1, user2, user3])
-    >>> group2 = Group('G2', [user4, user5])
-    >>> group3 = Group('G3', [user1, user4])
-    >>> users = [user1, user2, user3, user4]
-    >>> groups = [group1, group2, group3]
+    >>> course2.group_ids
+    ('A', 'B', 'G1', 'G2')
     """
-#    >>> course = Course(12345, users, groups)
     n_columns = 5
     idx_first_name = 0
     idx_last_name = 1
@@ -314,20 +321,14 @@ class Course():
     idx_email = 3
     idx_group_ids = 4
     
-    def __init__(self, course_id, users, groups):
+    def __init__(self, course_id, users):
         self.course_id = course_id
         self.users = tuple(sorted(users))
-        self.groups = tuple(sorted(groups, key=lambda x: x.group_id))
-        # Sanity check: ensure that group membership is consistent —
-        # all users who declare membership in a group must appear in
-        # the group's member list, and vice versa.
-        for group in self.groups:
-            group_users = set()
-            for user in users:
-                if group.group_id in user.group_ids:
-                    group_users.add(user)
-            if group_users != set(group.members):
-                raise ValueError(f'Group {group} is malformed')
+        group_ids = set()
+        for user in users:
+            for group_id in user.group_ids:
+                group_ids.add(group_id)
+        self.group_ids = tuple(sorted(group_ids, key=normalize))
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.course_id})'
@@ -337,7 +338,6 @@ class Course():
         filename = f'courseid_{course_id}_participants.csv'
         csv_file = Path(data_folder, filename)
         users = []
-        groups = []
         with open(csv_file, newline='', encoding='utf-8') as file:
             reader = csv.reader(file)
             next(reader)  # Skip header row
@@ -359,14 +359,7 @@ class Course():
                 group_ids = sorted(valid_ids, key=normalize)
                 user = User(first_name, last_name, id_number, email, group_ids)
                 users.append(user)
-                for group_id in group_ids:
-                    for group in groups:
-                        if group.group_id == group_id:
-                            group.members += (user,)
-                            break
-                    else:
-                        groups.append(Group(group_id, [user]))
-        return cls(course_id, users, groups)
+        return cls(course_id, users)
 
 
 class Workshop():
@@ -588,5 +581,4 @@ class Workshop():
 
 
 if __name__ == '__main__':
-    
     doctest.testmod()
