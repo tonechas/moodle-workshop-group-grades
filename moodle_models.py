@@ -1,3 +1,4 @@
+from collections import defaultdict
 import csv
 import doctest
 from pathlib import Path
@@ -66,6 +67,7 @@ class User():
     >>> user4 = User('James', 'Brown', 4567890, 'jim@example.com', None)
     >>> user4.group_ids
     ()
+    
     """
     def __init__(
             self,
@@ -80,7 +82,7 @@ class User():
         self.full_name = f'{self.first_name} {self.last_name}'
         self.id_number = id_number
         self.email = email
-        self.group_ids = group_ids  # !!! Sort alphabetically
+        self.group_ids = group_ids
     
     
     @property
@@ -96,7 +98,7 @@ class User():
             self._group_ids = (ids,)
         elif isinstance(ids, (list, tuple)):
             valid_ids = set(str(id_) for id_ in ids if id_ not in (['', None]))
-            self._group_ids = tuple(sorted(valid_ids))
+            self._group_ids = tuple(sorted(valid_ids, key=normalize))
         else:
             raise ValueError('Invalid group IDs')
 
@@ -146,6 +148,7 @@ class User():
         >>> user6 = User('John', 'Doe', 900006, 'j.doe@fakemail.net')
         >>> user5 < user6
         True
+        
         """
         tup_self = (
             normalize(self.last_name),
@@ -208,6 +211,7 @@ class Group():
     >>> group4 = Group('G3', [user1, user2])
     >>> group4.members
     (User('Sally Smith', 222222),)
+    
     """
     def __init__(self, group_id, members=None):
         self.group_id = group_id
@@ -253,8 +257,8 @@ class Course():
         The Moodle-assigned course identifier.
     users : tuple of User
         All users enrolled in the course, sorted by last name.
-    group_ids : tuple of str
-        All group_ids in the course, sorted alphabetically.
+    groups : tuple of Group
+        All groups in the course, sorted alphabetically.
 
     Class Methods
     -------------
@@ -283,8 +287,12 @@ class Course():
     User('Jane Roe', 333333)
     User('Sally Smith', 111111)
     User('Mary Stewart', 555555)
-    >>> course1.group_ids
-    ('A', 'B', 'C', 'X', 'Y')
+    >>> for group in course1.groups: print(group)
+    Group('A')
+    Group('B')
+    Group('C')
+    Group('X')
+    Group('Y')
 
     >>> csv_file = Path('.', f'courseid_{course_id}_participants.csv')
     >>> header = '"First name","Last name","ID number","Email address",Groups'
@@ -301,6 +309,8 @@ class Course():
     >>> course2 = Course.from_participants_csv(course_id, '.')
     Incomplete user info: ['Alfred', '666666', 'freddy@nomail.com', 'A, B']
     Incomplete user info: ['Mary', 'Stewart', '777777']
+    >>> type(course2.users)
+    <class 'tuple'>
     >>> for user in course2.users:
     ...     print(user)
     ...
@@ -309,10 +319,14 @@ class Course():
     User('Robert Johnson', 555555)
     User('Jane Roe', 333333)
     User('Sally Smith', 111111)
-    >>> type(course2.users)
+    >>> type(course2.groups)
     <class 'tuple'>
-    >>> course2.group_ids
-    ('A', 'B', 'G1', 'G2')
+    >>> for group in course2.groups: print(group)
+    Group('A')
+    Group('B')
+    Group('G1')
+    Group('G2')
+
     """
     n_columns = 5
     idx_first_name = 0
@@ -324,15 +338,20 @@ class Course():
     def __init__(self, course_id, users):
         self.course_id = course_id
         self.users = tuple(sorted(users))
-        group_ids = set()
-        for user in users:
-            for group_id in user.group_ids:
-                group_ids.add(group_id)
-        self.group_ids = tuple(sorted(group_ids, key=normalize))
-
+        self.groups = self.get_groups()
+        
     def __repr__(self):
         return f'{self.__class__.__name__}({self.course_id})'
 
+    def get_groups(self):
+        mapping = defaultdict(list)
+        for user in self.users:
+            for group_id in user.group_ids:
+                mapping[group_id].append(user)
+        groups = [Group(group_id, users)
+                  for group_id, users in mapping.items()]
+        return tuple(sorted(groups, key=lambda g: normalize(repr(g))))
+        
     @classmethod
     def from_participants_csv(cls, course_id, data_folder):
         filename = f'courseid_{course_id}_participants.csv'
