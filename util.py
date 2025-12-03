@@ -40,7 +40,48 @@ def normalize(text):
 
 
 
-class DataFolderManager: # !!! Docstring
+class DataFolderManager:
+    """Manage selection and persistence of a user-defined data folder.
+
+    This class provides a simple mechanism to retrieve, store,
+    and reuse a directory path chosen by the user. It attempts
+    to read the folder path from a configuration file; if the path
+    is missing or invalid, the user is prompted via a GUI dialog
+    to select a folder. The chosen path is then saved to the
+    configuration file for future sessions.
+
+    Parameters
+    ----------
+    config_file : str or pathlib.Path-like
+        Path to the configuration file where the selected folder
+        will be stored.
+    section : str
+        Name of the configuration section containing the folder key.
+    key : str
+        Key under which the folder path is stored in the
+        configuration file.
+
+    Attributes
+    ----------
+    config_file : pathlib.Path
+        Configuration file path as a :class:`~pathlib.Path` object.
+    section : str
+        Configuration section name.
+    key : str
+        Configuration key corresponding to the stored folder path.
+    default_path : pathlib.Path
+        Default directory used when no valid path is found in the
+        configuration file. Defaults to the current working directory.
+    _data_folder : pathlib.Path or None
+        Cached folder path once resolved.
+
+    Notes
+    -----
+    The folder selection dialog is implemented using :mod:`tkinter`.
+    If the user cancels the dialog, a fallback path (either the
+    previously stored folder or ``default_path``) is used.
+    """
+
     def __init__(self, config_file, section, key):
         self.config_file = Path(config_file)
         self.section = section
