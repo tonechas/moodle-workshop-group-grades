@@ -23,7 +23,7 @@ class User():
         The user's ID number in the Moodle database.
     group_ids : str, list of str, tuple or None, optional
         An ID or a list of IDs of the group(s) to which the user belongs.
-        Defaults to None if not provided.
+        Defaults to `None` if not provided.
 
     Attributes
     ----------
@@ -54,7 +54,7 @@ class User():
     >>> print(user1)
     User('John Doe', 123456)
     
-    >>> user2 = User('Alice', 'Smith', 3456789, 'alice08@example.net', 'A2')
+    >>> user2 = User('Alice', 'Smith', 345678, 'alice08@example.net', 'A2')
     >>> user2.group_ids
     ('A2',)
 
@@ -183,7 +183,7 @@ class Group():
         The human-readable name of the group.
     members : tuple of User
         The users who are members of the group. Those users whose
-        `.groups_ids attribute does not contain the `self.group_id`
+        `.groups_ids` attribute does not contain the `self.group_id`
         won't be included in this tuple. Regardless of the input
         type, the value is stored internally as a tuple.
 
@@ -279,6 +279,7 @@ class Course():
     >>> user5 = User('Mary', 'Stewart', 555555, 'mary@nomail.com', ['C'])
     >>> user6 = User('Alfred', 'Miller', 666666, 'freddy@nomail.com')
     >>> users = [user1, user2, user3, user4, user5, user6]
+    
     >>> course1 = Course(12345, users)
     >>> for user in course1.users: print(user)
     User('Joe Bloggs', 222222)
@@ -306,6 +307,7 @@ class Course():
     ...     print('Alfred,666666,freddy@nomail.com,"A, B"', file=f)
     ...     print('Mary,Stewart,777777', file=f)
     ...
+    
     >>> course2 = Course.from_participants_csv(course_id, '.')
     Incomplete user info: ['Alfred', '666666', 'freddy@nomail.com', 'A, B']
     Incomplete user info: ['Mary', 'Stewart', '777777']
@@ -393,11 +395,13 @@ class Workshop():
 
     Parameters
     ----------
-    filename : str
+    html_path : pathlib.Path
         Path to the HTML report file exported from Moodle.
 
     Attributes
     ----------
+    html_path : pathlib.Path
+        Path to the HTML report file exported from Moodle.
     soup : bs4.BeautifulSoup
         Parsed HTML content of the workshop report.
     workshop_title : str
@@ -416,10 +420,11 @@ class Workshop():
         'overall', representing the group submission score 
         and the total grade (submission + assessment).
     """
-    def __init__(self, filename):
-        self.soup = self.get_soup(filename)
+    def __init__(self, html_path):
+        self.html_path = html_path
+        self.soup = self.get_soup()
         self.workshop_title = mwrp.extract_workshop_title(self.soup)
-        self.course = self.get_course(filename.parent)  # !!! Check this
+        self.course = self.get_course()
         self.group_ids = mwrp.extract_group_ids(self.soup)
         self.grades_from_report = mwrp.extract_grades(self.soup)
         # Since not all enrolled users necessarily participate in the
@@ -429,40 +434,31 @@ class Workshop():
         self.grades = self.compute_grades()
 
 
-    def get_soup(self, filename):
+    def get_soup(self):
         """
         Read the specified HTML file and parse its content using 
         BeautifulSoup with the 'lxml' parser.
     
-        Parameters
-        ----------
-        filename : str
-            Path to the HTML file exported from a Moodle workshop 
-            grades report.
-        
         Returns
         -------
         bs4.BeautifulSoup
             Parsed HTML content of the grades report, used
             internally for extracting information.
         """
-        with open(filename, 'r', encoding='utf-8') as file:
+        with open(self.html_path, 'r', encoding='utf-8') as file:
             html_content = file.read()
         return BeautifulSoup(html_content, 'lxml')
         
     
-    def get_course(self, data_folder):
+    def get_course(self):
         """
         Load course participant data based on the course ID.
 
         This method extracts the course ID from the workshop's HTML
         report and uses it to instantiate a `Course` object by reading
         the corresponding CSV file. The CSV file is expected to be
-        named `courseid_<id>_participants.csv`.
-
-        Parameters
-        ----------
-        data_folder  # !!! TBD
+        named `courseid_<id>_participants.csv` and to be stored in the
+        same folder as the HTML file.
 
         Returns
         -------
@@ -474,9 +470,10 @@ class Workshop():
         --------
         Course.from_participants_csv : Method that reads and parses
         the CSV participant list.
+        
         """
         course_id = mwrp.extract_course_id(self.soup)
-        #course_title = self.parser.extract_course_title()
+        data_folder = self.html_path.parent
         course_obj = Course.from_participants_csv(course_id, data_folder)
         return course_obj
 
@@ -499,7 +496,7 @@ class Workshop():
         return groups
 
 
-    def compute_grades(self):
+    def compute_grades(self): # !!! Docstring
         grades = dict()
         workshop_groups = self.get_workshop_groups()
         for group in workshop_groups:
