@@ -461,7 +461,9 @@ def extract_grades(soup):
                 grader_view_id = int(match_id.group(1)) if match_id else None
                 grade_tag = td_received.find('span', class_='grade')
                 grade = get_grade(grade_tag)
-                view_id_to_grades[participant_view_id]['received'][grader_view_id] = grade
+                view_id_to_grades[participant_view_id]['received'][
+                    grader_view_id
+                ] = grade
             except BaseException as ex:
                 print(ex)
                 print('Skipping malformed receivedgrade cell')
@@ -475,7 +477,9 @@ def extract_grades(soup):
                 gradee_view_id = int(match_id.group(1))
                 grade_tag = td_given.find('span', class_='grade')
                 grade = get_grade(grade_tag)
-                view_id_to_grades[participant_view_id]['given'][gradee_view_id] = grade
+                view_id_to_grades[participant_view_id]['given'][
+                    gradee_view_id
+                ] = grade
             except BaseException as ex:
                 print(ex)
                 print('Skipping malformed receivedgrade cell')
@@ -514,10 +518,12 @@ def extract_grades(soup):
     for participant_view_id in view_id_to_grades:
         alt = view_id_to_alt[participant_view_id]
         received = dict()
-        for grader_view_id, grade in view_id_to_grades[participant_view_id]['received'].items():
+        for grader_view_id, grade in view_id_to_grades[participant_view_id][
+                'received'].items():
             received[view_id_to_alt[grader_view_id]] = grade
         given = dict()
-        for gradee_view_id, grade in view_id_to_grades[participant_view_id]['given'].items():
+        for gradee_view_id, grade in view_id_to_grades[participant_view_id][
+                'given'].items():
             given[view_id_to_alt[gradee_view_id]] = grade
         alt_to_grades[alt] = {
             'submitted': view_id_to_grades[participant_view_id]['submitted'],
