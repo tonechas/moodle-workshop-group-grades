@@ -503,9 +503,17 @@ class Workshop():
             full_names = [member.full_name for member in group.members]
             received = []
             for full_name in full_names:
+                # As a student cannot belong to more than one group,
+                # we can initialize the value associated with its
+                # full name (the key) with an empty dictionary
                 grades[full_name] = dict()
                 mapping = self.grades_from_report[full_name]
-                received.extend(mapping['received'].values())  # !!! check for repetitions
+                # Storing the received grades in a list rather than
+                # in a dictionary makes it possible that the number
+                # of graders could be less than the number of grades
+                # (for instance, if a student is assigned the
+                # submissions of two members of the same group).
+                received.extend(mapping['received'].values())
             if received:
                 group_grade = sum(received)/len(received)
             else:
@@ -516,11 +524,13 @@ class Workshop():
                 else:
                     grades[full_name]['submission'] = 0
         for full_name in grades:
+            # `submission` cannot be `mwrp.NULL_GRADE`
             submission = grades[full_name]['submission']
             assessment = self.grades_from_report[full_name]['grading']
-            submission = submission if submission is not mwrp.NULL_GRADE else 0
             assessment = assessment if assessment is not mwrp.NULL_GRADE else 0
-            grades[full_name]['overall'] = submission + assessment  # !!! check normalization
+            # We assume that submission and assessment grades are
+            # properly normalized and therefore can be summed up
+            grades[full_name]['overall'] = submission + assessment
         return grades
     
     
