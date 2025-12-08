@@ -496,7 +496,32 @@ class Workshop():
         return groups
 
 
-    def compute_grades(self): # !!! Docstring
+
+    def compute_grades(self):
+        """
+        Compute final grades for all workshop participants.
+    
+        Combines group submission grades with individual assessment
+        grades extracted from the Moodle workshop report. A student
+        cannot belong to more than one group.
+    
+        The group submission grade is the average of all received
+        peer-assessment scores for its members. If no scores exist,
+        the grade defaults to `mwrp.NULL_GRADE`. Members who did not
+        submit work receive 0 for submission. Assessment grades equal
+        to `mwrp.NULL_GRADE` are treated as 0. Submission and
+        assessment grades are assumed normalized and summed directly.
+    
+        Returns
+        -------
+        grades : dict
+            Maps each participant's full name to a dictionary with:
+            - 'submission' (float): Group submission grade.
+            - 'grading' (float): Individual grade for assessment.
+            - 'overall' (float): Sum of submission and assessment
+              grades.
+    
+        """
         grades = dict()
         workshop_groups = self.get_workshop_groups()
         for group in workshop_groups:
