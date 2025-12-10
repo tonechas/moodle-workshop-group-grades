@@ -4,6 +4,10 @@ from tkinter import Tk, filedialog
 import unicodedata
 
 
+class DirNotFoundError(Exception):
+    pass
+
+
 def normalize(text):
     """
     Remove accents from a string and convert to lowercase.
@@ -37,6 +41,38 @@ def normalize(text):
         c for c in unicodedata.normalize('NFKD', text)
         if not unicodedata.combining(c)
     ).lower()
+
+
+def select_html_file(initial_dir=''):
+    """Select an HTML file through a dialog box.
+
+    Parameters
+    ----------
+    initial_dir : str or pathlib.Path
+        The directory that the dialog starts in.
+
+    Returns
+    -------
+    file_path : pathlib.Path
+        Path of the selected file. If the user clicks on the
+        Cancel button, the returned value is `Path('.')`.
+    """
+    try:
+        initial_dir = Path(initial_dir)
+        if not initial_dir.is_dir():
+            raise DirNotFoundError
+    except (TypeError, DirNotFoundError):
+        initial_dir = Path(__file__)
+    
+    title = 'Select workshop grades report HTML file'
+    filetypes = [('HTML', '*.html;*.htm'), ('All files', '*.*')]
+    file_str = filedialog.askopenfilename(
+        initialdir=initial_dir,
+        title=title,
+        filetypes = filetypes,
+    )
+    file_path = Path(file_str)
+    return file_path
 
 
 
