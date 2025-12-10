@@ -264,7 +264,7 @@ class Course():
     -------------
     from_participants_csv(course_id)
         Constructs a Course instance from a Moodle CSV file named
-        `courseid_<course_id>_participants.csv`. The file must have
+        `<course_id>_participants.csv`. The file must have
         five columns: "First name", "Last name", "ID number",
         "Email address", and "Groups". Group names must be
         comma-separated.
@@ -295,7 +295,7 @@ class Course():
     Group('X')
     Group('Y')
 
-    >>> csv_file = Path('.', f'courseid_{course_id}_participants.csv')
+    >>> csv_file = Path('.', f'{course_id}_participants.csv')
     >>> header = '"First name","Last name","ID number","Email address",Groups'
     >>> with open(csv_file, 'w') as f:
     ...     print(header, file=f)
@@ -356,7 +356,7 @@ class Course():
         
     @classmethod
     def from_participants_csv(cls, course_id, data_folder):
-        filename = f'courseid_{course_id}_participants.csv'
+        filename = f'{course_id}_participants.csv'
         csv_file = Path(data_folder, filename)
         users = []
         with open(csv_file, newline='', encoding='utf-8') as file:
@@ -457,7 +457,7 @@ class Workshop():
         This method extracts the course ID from the workshop's HTML
         report and uses it to instantiate a `Course` object by reading
         the corresponding CSV file. The CSV file is expected to be
-        named `courseid_<id>_participants.csv` and to be stored in the
+        named `<courseid_id>_participants.csv` and to be stored in the
         same folder as the HTML file.
 
         Returns
