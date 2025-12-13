@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 import moodle_workshop_report_parser as mwrp
 from util import normalize
 
+SEPARATOR = '#'
 
 class User():
     """
@@ -264,7 +265,7 @@ class Course():
     -------------
     from_participants_csv(course_id)
         Constructs a Course instance from a Moodle CSV file named
-        `<course_id>_participants.csv`. The file must have
+        `<course_id><SEPARATOR>participants.csv`. The file must have
         five columns: "First name", "Last name", "ID number",
         "Email address", and "Groups". Group names must be
         comma-separated.
@@ -295,7 +296,7 @@ class Course():
     Group('X')
     Group('Y')
 
-    >>> csv_file = Path('.', f'{course_id}_participants.csv')
+    >>> csv_file = Path('.', f'{course_id}{SEPARATOR}participants.csv')
     >>> header = '"First name","Last name","ID number","Email address",Groups'
     >>> with open(csv_file, 'w') as f:
     ...     print(header, file=f)
@@ -356,7 +357,7 @@ class Course():
         
     @classmethod
     def from_participants_csv(cls, course_id, data_folder):
-        filename = f'{course_id}_participants.csv'
+        filename = f'{course_id}{SEPARATOR}participants.csv'
         csv_file = Path(data_folder, filename)
         users = []
         with open(csv_file, newline='', encoding='utf-8') as file:
