@@ -435,6 +435,13 @@ class Workshop():
         self.grades = self.compute_grades()
 
 
+    def __repr__(self):
+        class_ = self.__class__.__name__
+        parts = self.html_path.stem.split(SEPARATOR)
+        course_id = int(parts[0])
+        workshop_id = parts[-1]
+        return f'{class_}({course_id=}, {workshop_id=})'
+
     def get_soup(self):
         """
         Read the specified HTML file and parse its content using 
