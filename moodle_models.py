@@ -69,6 +69,14 @@ class User():
     >>> user4.group_ids
     ()
     
+    >>> for user in sorted([user1, user2, user3, user4]):
+    ...     print(user)
+    ...
+    User('James Brown', 4567890)
+    User('John Doe', 123456)
+    User('Jane Roe', 234567)
+    User('Alice Smith', 345678)
+    
     """
     def __init__(
             self,
@@ -220,7 +228,7 @@ class Group():
             self.members = ()
         else:
             lst = [user for user in members if group_id in user.group_ids]
-            self.members = tuple(sorted(lst, key=repr))
+            self.members = tuple(sorted(lst))
 
     def __repr__(self):
         return f'{self.__class__.__name__}({self.group_id!r})'
@@ -282,14 +290,18 @@ class Course():
     >>> users = [user1, user2, user3, user4, user5, user6]
     
     >>> course1 = Course(12345, users)
-    >>> for user in course1.users: print(user)
+    >>> for user in course1.users:
+    ...     print(user)
+    ...
     User('Joe Bloggs', 222222)
     User('John Doe', 444444)
     User('Alfred Miller', 666666)
     User('Jane Roe', 333333)
     User('Sally Smith', 111111)
     User('Mary Stewart', 555555)
-    >>> for group in course1.groups: print(group)
+    >>> for group in course1.groups:
+    ...     print(group)
+    ...
     Group('A')
     Group('B')
     Group('C')
@@ -307,11 +319,13 @@ class Course():
     ...     print('Robert,Johnson,555555,bob@fakemail.com,""', file=f)
     ...     print('Alfred,666666,freddy@nomail.com,"A, B"', file=f)
     ...     print('Mary,Stewart,777777', file=f)
+    ...     print('David,Evans,evans8888,dave@123.com,"A"', file=f)
     ...
     
     >>> course2 = Course.from_participants_csv(course_id, '.')
     Incomplete user info: ['Alfred', '666666', 'freddy@nomail.com', 'A, B']
     Incomplete user info: ['Mary', 'Stewart', '777777']
+    Invalid ID for David Evans: evans8888
     >>> type(course2.users)
     <class 'tuple'>
     >>> for user in course2.users:
@@ -319,12 +333,15 @@ class Course():
     ...
     User('Joe Bloggs', 222222)
     User('John Doe', 444444)
+    User('David Evans', None)
     User('Robert Johnson', 555555)
     User('Jane Roe', 333333)
     User('Sally Smith', 111111)
     >>> type(course2.groups)
     <class 'tuple'>
-    >>> for group in course2.groups: print(group)
+    >>> for group in course2.groups:
+    ...     print(group)
+    ...
     Group('A')
     Group('B')
     Group('G1')
@@ -370,8 +387,12 @@ class Course():
                 first_name = line[cls.idx_first_name].strip()
                 last_name = line[cls.idx_last_name].strip()
                 try:
-                    id_number = int(line[cls.idx_id_number].strip())
+                    id_str = line[cls.idx_id_number].strip()
+                    id_number = int(id_str)
                 except ValueError:
+                    err_msg = (f'Invalid ID for {first_name} '
+                               f'{last_name}: {id_str}')
+                    print(err_msg)
                     id_number = None
                 email = line[cls.idx_email].strip()
                 valid_ids = set()
@@ -430,7 +451,8 @@ class Workshop():
         self.grades_from_report = mwrp.extract_grades(self.soup)
         # Since not all enrolled users necessarily participate in the
         # workshop, the number of graded users may differ from the
-        # total number of users:
+        # total number of users, and as a consequence, the following
+        # expression may be evaluated as True:
         # len(self.grades) != len(self.course.users)
         self.grades = self.compute_grades()
 
