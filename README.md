@@ -59,7 +59,7 @@ This is the HTML code of the Workshop grades report. Note that `<workshop_id>` s
 
 <figure>
   <img src="https://grok.lsu.edu/image/56192.jpg" alt="Screenshot of Workshop grades report" width="auto">
-  <figcaption>Source: <a href="https://grok.lsu.edu/article.aspx?articleid=56192">GROK Knowledge Base, LSU</a></figcaption>
+  <figcaption>Source: <a href="https://grok.lsu.edu/article.aspx?articleid=19759">GROK Knowledge Base, LSU</a></figcaption>
 </figure>
 
 ### `<workshop_id>.csv`
